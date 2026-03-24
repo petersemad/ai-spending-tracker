@@ -1,0 +1,128 @@
+{
+  "project": "ai-spending-tracker",
+  "version": "2.0",
+  "patterns": {
+    "architecture": {
+      "name": "Serverless Event-Driven Pipeline",
+      "description": "Android SMS triggers an HTTP POST to a Vercel serverless function, which calls OpenAI for NLP extraction, stores the result in a cloud Postgres DB, and serves the data to a static frontend via a separate GET endpoint.",
+      "flow": ["Android SMS → MacroDroid", "MacroDroid → POST /api/webhook", "webhook → OpenAI gpt-4o-mini", "webhook → Neon PostgreSQL INSERT", "Frontend → GET /api/transactions", "Frontend → Render Dashboard"]
+    },
+    "ai_integration": {
+      "name": "Structured JSON Extraction via System Prompt",
+      "description": "A rigid system prompt constrains the AI to output only a JSON object with fixed keys (amount, type, vendor, category). The response_format is set to json_object to guarantee parseable output. Temperature is set to 0.2 for deterministic results.",
+      "model": "gpt-4o-mini",
+      "temperature": 0.2,
+      "response_format": "json_object",
+      "ignore_pattern": "AI returns {\"ignore\": true} for unrecognized or declined messages"
+    },
+    "database": {
+      "name": "Auto-Initializing Schema",
+      "description": "Each serverless function call runs CREATE TABLE IF NOT EXISTS before any query. This eliminates the need for migration scripts and ensures the schema exists on first invocation.",
+      "engine": "PostgreSQL (Neon)",
+      "connection_strategy": "Fallback chain: storage_POSTGRES_URL → DATABASE_URL → POSTGRES_URL → NEON_DATABASE_URL"
+    },
+    "authentication": {
+      "name": "PIN-Based Admin Guard",
+      "description": "Destructive operations (DELETE, PATCH) require a password field in the request body. The PIN is compared server-side against the ADMIN_PASSWORD env var (default: 1234). This is a lightweight guard suitable for a single-user personal tool.",
+      "protected_routes": ["/api/delete", "/api/update"],
+      "default_pin": "1234",
+      "env_var": "ADMIN_PASSWORD"
+    },
+    "frontend": {
+      "name": "Glassmorphic Dark Mode Design System",
+      "description": "A premium UI built with vanilla CSS using layered glass surfaces, ambient mesh gradient backgrounds, SVG noise texture overlays, and cubic-bezier micro-animations. No frameworks or CSS libraries used.",
+      "design_tokens": {
+        "bg_dark": "#09090b",
+        "glass_surface": "rgba(255, 255, 255, 0.03)",
+        "glass_border": "rgba(255, 255, 255, 0.05)",
+        "accent_purple": "#818cf8",
+        "accent_blue": "#38bdf8",
+        "money_in": "#34d399",
+        "money_out": "#f87171",
+        "text_high": "#f8fafc",
+        "text_med": "#94a3b8",
+        "text_low": "#64748b"
+      },
+      "font": "Outfit (Google Fonts)",
+      "icons": "Phosphor Icons (unpkg CDN)",
+      "responsive_breakpoints": {
+        "tablet": "950px",
+        "mobile": "580px"
+      }
+    },
+    "state_management": {
+      "name": "In-Memory Client-Side Filtering",
+      "description": "All transactions are fetched once into a global allTransactions array. Filters (type, account, date) are applied client-side without re-fetching from the server. This keeps the UI instant and reduces API calls.",
+      "custom_categories_storage": "localStorage key 'customCategories' stores user-created category names as a JSON array"
+    },
+    "categorization": {
+      "name": "Hybrid AI + Manual Categorization",
+      "description": "Initial categorization is done by the AI using a predefined list of 13 categories with merchant-name heuristics. Users can override any category via the re-categorize modal, which persists the change to the database via PATCH /api/update.",
+      "default_categories": [
+        "Transport",
+        "Food & Drink",
+        "Groceries",
+        "Shopping",
+        "Entertainment",
+        "Utilities",
+        "Health",
+        "Education",
+        "Transfer",
+        "ATM",
+        "Subscription",
+        "Refund",
+        "Other"
+      ],
+      "card_type_detection": "Category string includes '(Credit)' for English SMS or '(Debit)' for Arabic SMS. Frontend also falls back to checking raw_text for the word 'credit' for bulletproof filtering."
+    },
+    "sms_formats": {
+      "name": "CIB Bank SMS Template Matching",
+      "description": "The AI is trained to recognize exactly 6 CIB SMS formats. Any message not matching these formats is silently ignored.",
+      "supported_formats": [
+        {
+          "id": 1,
+          "name": "Credit Card Purchase",
+          "language": "English",
+          "pattern": "Your credit card #{last4} was charged for {amount} at {merchant}...",
+          "type": "Out"
+        },
+        {
+          "id": 2,
+          "name": "Debit Card Purchase",
+          "language": "Arabic",
+          "pattern": "تم خصم مبلغ {amount} من بطاقة الخصم المباشر...",
+          "type": "Out"
+        },
+        {
+          "id": 3,
+          "name": "Instant Transfer Outgoing",
+          "language": "Arabic",
+          "pattern": "تم تنفيذ تحويل لحظي بمبلغ {amount} من حسابك...",
+          "type": "Out"
+        },
+        {
+          "id": 4,
+          "name": "Instant Transfer Incoming",
+          "language": "Arabic",
+          "pattern": "تم تنفيذ تحويل لحظي بمبلغ {amount} إلى حسابك...",
+          "type": "In"
+        },
+        {
+          "id": 5,
+          "name": "ATM Withdrawal",
+          "language": "Arabic",
+          "pattern": "تم سحب مبلغ {amount} من بطاقة الخصم المباشر...",
+          "type": "Out"
+        },
+        {
+          "id": 6,
+          "name": "Refund / Reversal",
+          "language": "Arabic",
+          "pattern": "تم اضافة المعاملة من {merchant} بقيمة {amount}...",
+          "type": "In"
+        }
+      ],
+      "ignored_formats": ["Transaction Declined (تم رفض المعاملة)", "OTP codes", "Marketing messages", "General notifications"]
+    }
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "name": "ai-spending-tracker",
+  "version": "1.0.0",
+  "description": "Local AI Spending Tracker connected to Android SMS",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "openai": "^4.104.0",
+    "pg": "^8.20.0"
+  }
+}

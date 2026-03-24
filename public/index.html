@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Spending Tracker</title>
+    <link rel="icon" type="image/png" href="/favicon.png?v=8">
+    <link rel="stylesheet" href="style.css?v=3.0">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        
+        <!-- Login Screen -->
+        <div id="loginScreen" class="glass-panel" style="margin-top: 15vh; text-align: center; max-width: 400px; margin-left: auto; margin-right: auto; padding: 3.5rem 2.5rem; box-shadow: 0 24px 64px rgba(0,0,0,0.6); animation: float 6s ease-in-out infinite;">
+            <i class="ph ph-lock-key" style="font-size: 3.5rem; color: var(--accent-purple); margin-bottom: 1.5rem; filter: drop-shadow(0 0 12px rgba(167, 139, 250, 0.4));"></i>
+            <h2 style="margin-bottom: 0.5rem; font-size:1.6rem; letter-spacing:-0.02em;">Dashboard Locked</h2>
+            <p style="color: var(--text-med); margin-bottom: 2rem; font-size: 0.95rem; line-height: 1.5;">Please enter your authorization PIN to decrypt the session.</p>
+            <input type="password" id="authPinInput" class="glass-input" placeholder="••••" style="text-align: center; font-size: 1.4rem; letter-spacing: 0.4rem; margin-bottom: 1.5rem; padding: 1rem;" onkeypress="if(event.key === 'Enter') attemptLogin()">
+            <button id="authLoginBtn" class="btn-glow" style="width: 100%; justify-content: center; font-size: 1.05rem; padding: 1rem;" onclick="attemptLogin()">Unlock Dashboard</button>
+        </div>
+        
+        <div id="appWrapper" style="display: none;">
+            <header class="glass-header">
+                <div class="header-left">
+                <h1>AI Spending Tracker</h1>
+                <p>Syncing via Android SMS <i class="ph-fill ph-check-circle"></i></p>
+            </div>
+            <div class="header-right" style="display: flex; gap: 0.5rem; align-items: center;">
+                <button id="themeToggle" class="theme-toggle" title="Toggle Light/Dark Mode">
+                    <i class="ph ph-sun"></i>
+                </button>
+                <button id="addBtn" class="btn-glow">
+                    <i class="ph ph-plus"></i> Add
+                </button>
+                <button id="refreshBtn" class="btn-glow">
+                    <i class="ph ph-arrows-clockwise"></i> Refresh
+                </button>
+            </div>
+        </header>
+
+        <div class="dashboard-grid">
+            <div class="glass-card balance-card">
+                <h3>Net Spent</h3>
+                <h2 id="netSpent">EGP 0.00</h2>
+                <div class="trend">
+                    <i class="ph ph-trend-down"></i> Tracking active
+                </div>
+            </div>
+            
+            <div class="glass-card income-card">
+                <h3>Money In</h3>
+                <h2 id="totalIncome">EGP 0.00</h2>
+            </div>
+            
+            <div class="glass-card out-card">
+                <h3>Money Out</h3>
+                <h2 id="totalOut">EGP 0.00</h2>
+            </div>
+        </div>
+
+        <!-- Global Filters -->
+        <div class="glass-panel" style="margin-bottom: 1rem; padding: 1rem; border-radius: 12px; min-height: auto;">
+            <div style="display: flex; flex-wrap: wrap; gap: 1rem; justify-content: space-between; align-items: center;">
+                <div class="filters" style="display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; width: 100%;">
+                    <select id="filterType" class="glass-select">
+                        <option value="all">All Types</option>
+                        <option value="In">Money In</option>
+                        <option value="Out">Money Out</option>
+                    </select>
+                    <select id="filterAccount" class="glass-select">
+                        <option value="all">All Cards</option>
+                        <option value="Credit">Credit Card</option>
+                        <option value="Debit">Debit Card</option>
+                    </select>
+                    <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+                        <select id="filterDate" class="glass-select">
+                            <option value="all">All Time</option>
+                            <option value="last_7_days">Last 7 Days</option>
+                            <option value="last_14_days">Last 14 Days</option>
+                            <option value="last_28_days">Last 28 Days</option>
+                            <option value="this_month">This Month</option>
+                            <option value="last_month">Last Month</option>
+                            <option value="this_year">This Year</option>
+                            <option value="last_year">Last Year</option>
+                            <option value="custom">Custom Period</option>
+                        </select>
+                        <select id="baseCurrency" class="glass-select">
+                            <option value="EGP">EGP</option>
+                            <option value="USD">USD</option>
+                            <option value="EUR">EUR</option>
+                            <option value="GBP">GBP</option>
+                        </select>
+                        <div id="customDateRange" style="display: none; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+                            <input type="date" id="customStartDate" class="glass-input" style="padding: 0.5rem; width: auto;">
+                            <span>to</span>
+                            <input type="date" id="customEndDate" class="glass-input" style="padding: 0.5rem; width: auto;">
+                        </div>
+                        <button id="exportCsvBtn" class="btn-glow" style="padding: 0.4rem 0.8rem; font-size: 0.85rem;"><i class="ph ph-file-xls"></i> Export Excel</button>
+                    </div>
+                    <div class="search-bar">
+                        <i class="ph ph-magnifying-glass"></i>
+                        <input type="text" id="searchVendor" placeholder="Search vendors...">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab Navigation -->
+        <div class="tab-nav">
+            <button class="tab-btn active" data-tab="transactions"><i class="ph ph-list"></i> Transactions</button>
+            <button class="tab-btn" data-tab="subscriptions"><i class="ph ph-calendar-blank"></i> Subscriptions</button>
+            <button class="tab-btn" data-tab="categories"><i class="ph ph-chart-pie-slice"></i> Categories</button>
+            <button class="tab-btn" data-tab="income"><i class="ph ph-wallet"></i> Income</button>
+            <button class="tab-btn" data-tab="statistics"><i class="ph ph-chart-bar"></i> Statistics</button>
+            <button class="tab-btn" data-tab="insights"><i class="ph ph-lightning"></i> Insights</button>
+            <button class="tab-btn" data-tab="chat"><i class="ph ph-sparkle"></i> AI Assistant</button>
+        </div>
+
+        <!-- Transactions Tab -->
+        <main class="glass-panel tab-content active" id="tab-transactions">
+            <div class="panel-header" style="justify-content: space-between; align-items: center;">
+                <div style="display: flex; align-items: center; gap: 1rem;">
+                    <h2>Recent Transactions</h2>
+                    <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; color: var(--text-med); cursor: pointer; user-select: none;">
+                        <input type="checkbox" id="selectAllTxsCheckbox">
+                        Select All
+                    </label>
+                </div>
+                <div>
+                    <button id="bulkDeleteBtn" class="btn-glow" style="display: none; background: rgba(248, 113, 113, 0.1); border-color: rgba(248, 113, 113, 0.3); color: #f87171; padding: 0.4rem 0.8rem; font-size: 0.85rem;" onclick="bulkDeleteTransactions()">
+                        <i class="ph ph-trash"></i> <span id="bulkDeleteCount">Delete</span>
+                    </button>
+                </div>
+            </div>
+            
+            <div class="transactions-list" id="transactionsList">
+                <div class="skeleton skeleton-row"></div>
+                <div class="skeleton skeleton-row"></div>
+                <div class="skeleton skeleton-row"></div>
+                <div class="skeleton skeleton-row"></div>
+                <div class="skeleton skeleton-row"></div>
+            </div>
+        </main>
+
+        <!-- Subscriptions Tab -->
+        <main class="glass-panel tab-content" id="tab-subscriptions">
+            <div class="panel-header" style="align-items: center; justify-content: space-between;">
+                <h2>Active Subscriptions</h2>
+                <div style="text-align: right;">
+                    <div style="font-size: 0.75rem; color: var(--text-med); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600;">Est. Monthly Burn</div>
+                    <div id="burnRate" style="font-size: 1.5rem; font-weight: 700; color: var(--money-out);">EGP 0.00</div>
+                </div>
+            </div>
+            
+            <div style="display:flex; justify-content: flex-end; margin-bottom: 1rem;">
+                <button class="btn-glow" style="padding: 0.5rem 1rem; border-radius: 8px; font-size: 0.85rem;" onclick="promptAddSubscription()">
+                    <i class="ph ph-plus"></i> Add Vendor
+                </button>
+            </div>
+            
+            <div id="subscriptionsList"></div>
+        </main>
+
+        <!-- Categories Tab -->
+        <main class="glass-panel tab-content" id="tab-categories">
+            <div class="panel-header" style="align-items: center; justify-content: space-between;">
+                <h2>Spending by Category</h2>
+                <div style="font-size:0.75rem; color:var(--text-med); font-weight:w600; text-transform:uppercase; letter-spacing:0.02em; padding: 0.25rem 0.5rem; border: 1px solid rgba(255,255,255,0.1); border-radius:4px; background: rgba(0,0,0,0.2);">
+                    Tap any category to set Limit
+                </div>
+            </div>
+            <div style="display:flex; justify-content: flex-end; margin-bottom: 1rem;">
+                <button class="btn-glow" style="padding: 0.5rem 1rem; border-radius: 8px; font-size: 0.85rem;" onclick="openCategorySettings()">
+                    <i class="ph ph-palette"></i> Customize Appearance
+                </button>
+            </div>
+            <div id="categoriesList"></div>
+        </main>
+
+        <!-- Income Tab -->
+        <main class="glass-panel tab-content" id="tab-income">
+            <div class="panel-header" style="align-items: center; justify-content: space-between;">
+                <h2>Income & Insights</h2>
+                <div style="text-align: right;">
+                    <div style="font-size: 0.75rem; color: var(--text-med); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600;">Net Saved This Month</div>
+                    <div id="netSaved" style="font-size: 1.5rem; font-weight: 700; color: var(--money-in);">EGP 0.00</div>
+                </div>
+            </div>
+            
+            <div class="dashboard-grid" style="margin-bottom: 2rem; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));">
+                <div class="glass-card" style="padding: 1.25rem;">
+                    <h3>Total Income</h3>
+                    <h2 id="totalIncomeMetric" style="font-size: 1.6rem;">EGP 0.00</h2>
+                </div>
+                <div class="glass-card" style="padding: 1.25rem;">
+                    <h3>% Spent (Month)</h3>
+                    <h2 id="percentSpent" style="font-size: 1.6rem;">0%</h2>
+                </div>
+                <div class="glass-card" style="padding: 1.25rem;">
+                    <h3>% Subscriptions</h3>
+                    <h2 id="percentSubs" style="font-size: 1.6rem;">0%</h2>
+                </div>
+            </div>
+
+            <div style="display:flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                <h3 style="font-size: 1rem; font-weight: 600; color: var(--text-med);">Income Sources</h3>
+                <button class="btn-glow" style="padding: 0.5rem 1rem; border-radius: 8px; font-size: 0.85rem;" onclick="promptAddIncome()">
+                    <i class="ph ph-plus"></i> Add Source
+                </button>
+            </div>
+            
+            <div id="incomeList"></div>
+        </main>
+
+        <!-- Statistics Tab -->
+        <main class="glass-panel tab-content" id="tab-statistics">
+            <div class="panel-header" style="flex-wrap: wrap; gap: 1rem;">
+                <h2>Income vs. Expense</h2>
+                <div class="filters" style="display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center;">
+                    <select id="statsChartType" class="glass-select">
+                        <option value="bar">Bar Chart</option>
+                        <option value="line">Line Chart</option>
+                    </select>
+                    <select id="statsGroupBy" class="glass-select">
+                        <option value="auto">Auto Grouping</option>
+                        <option value="Day">Group by Day</option>
+                        <option value="Week">Group by Week</option>
+                        <option value="Month">Group by Month</option>
+                    </select>
+                    <select id="statsCurrency" class="glass-select">
+                        <option value="EGP">EGP</option>
+                        <option value="USD">USD</option>
+                    </select>
+                    <select id="statsCategoryFilter" class="glass-select">
+                        <option value="all">All Categories</option>
+                    </select>
+                </div>
+            </div>
+            <div class="chart-container" style="position: relative; height:400px; width:100%; margin-top: 1rem;">
+                <canvas id="statsChart"></canvas>
+            </div>
+        </main>
+
+        <!-- Insights Tab -->
+        <main class="glass-panel tab-content" id="tab-insights">
+            <div class="panel-header">
+                <h2>Smart Insights</h2>
+            </div>
+            <div class="analytics-grid" id="analyticsGrid"></div>
+            <div class="analytics-widget" id="heatmapWidget" style="margin-top:0;"></div>
+        </main>
+
+        <!-- Conversational Chat Tab -->
+        <main class="glass-panel tab-content" id="tab-chat" style="display:flex; flex-direction:column; gap:1rem;">
+            <div class="panel-header">
+                <h2>Financial Assistant</h2>
+            </div>
+            <div id="chatHistory" style="flex:1; min-height: 300px; max-height:400px; overflow-y:auto; display:flex; flex-direction:column; gap:1rem; padding-right:0.5rem;">
+                <div style="background: rgba(255,255,255,0.05); padding: 1rem; border-radius: 12px; max-width: 85%; align-self: flex-start;">
+                    <i class="ph ph-robot" style="margin-right:0.5rem; color:var(--text-med);"></i>
+                    Looking at your recent records, what would you like me to analyze for you today?
+                </div>
+            </div>
+            <div style="display:flex; gap:0.5rem; margin-top:0.5rem;">
+                <input type="text" id="chatInput" class="glass-input" style="flex:1;" placeholder="Ask 'How much did I spend on Ubers this month?'">
+                <button id="chatSendBtn" class="btn-glow" style="padding: 0 1.5rem;"><i class="ph ph-paper-plane-right"></i></button>
+            </div>
+        </main>
+        </div> <!-- End appWrapper -->
+    </div>
+    <div id="toastContainer"></div>
+
+    <script src="app.js?v=3.0"></script>
+</body>
+</html>
