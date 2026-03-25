@@ -1,5 +1,4 @@
-import { Pool } from 'pg';
-import { OpenAI } from 'openai';
+import { pool } from './db.js';import { OpenAI } from 'openai';
 
 const openai = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY
@@ -81,10 +80,7 @@ export default async function handler(request, response) {
             console.error("No OpenAI API key found in .env");
             return response.status(500).json({ error: "OpenAI API key missing on server" });
         }
-        if (!connectionString) {
-            console.error("No Database connection URL found");
-            return response.status(500).json({ error: "Database URL missing on server" });
-        }
+
 
         const completion = await openai.chat.completions.create({
             model: "gpt-4o-mini",

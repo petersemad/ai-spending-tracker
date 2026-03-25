@@ -1,18 +1,11 @@
-import { Pool } from 'pg';
-
-const connectionString = process.env.storage_POSTGRES_URL || process.env.DATABASE_URL || process.env.POSTGRES_URL || process.env.NEON_DATABASE_URL;
-
-const pool = new Pool({
-    connectionString: connectionString,
-    ssl: { rejectUnauthorized: false }
-});
+import { pool } from './db.js';
 
 export default async function handler(request, response) {
     if (request.method !== 'POST') return response.status(405).json({ error: 'Method Not Allowed' });
 
     try {
         const { query, password } = request.body;
-        if (password !== (process.env.ADMIN_PASSWORD || '1234')) return response.status(401).json({ error: 'Unauthorized PIN' });
+        if (password !== (process.env.ADMIN_PASSWORD)) return response.status(401).json({ error: 'Unauthorized PIN' });
         if (!query) return response.status(400).json({ error: 'Missing query' });
 
         // Pull last 1000 transactions to save token context

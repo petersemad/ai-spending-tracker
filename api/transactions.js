@@ -1,26 +1,17 @@
-import { Pool } from 'pg';
-
-const connectionString = process.env.storage_POSTGRES_URL || process.env.DATABASE_URL || process.env.POSTGRES_URL || process.env.NEON_DATABASE_URL;
-
-const pool = new Pool({
-    connectionString: connectionString,
-    ssl: { rejectUnauthorized: false }
-});
+import { pool } from './db.js';
 
 export default async function handler(request, response) {
     if (request.method !== 'GET') {
         return response.status(405).json({ error: 'Method Not Allowed' });
     }
     
-    const adminPassword = process.env.ADMIN_PASSWORD || '1234';
+    const adminPassword = process.env.ADMIN_PASSWORD;
     if (request.query.password !== adminPassword) {
         return response.status(401).json({ error: 'Unauthorized', message: 'Invalid session PIN.' });
     }
 
     try {
-        if (!connectionString) {
-            return response.status(500).json({ error: "Database URL missing on server" });
-        }
+
 
         // Ensure table exists (in case get is called before any webhook)
         await pool.query(`CREATE TABLE IF NOT EXISTS transactions (

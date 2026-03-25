@@ -1,11 +1,4 @@
-import { Pool } from 'pg';
-
-const connectionString = process.env.storage_POSTGRES_URL || process.env.DATABASE_URL || process.env.POSTGRES_URL || process.env.NEON_DATABASE_URL;
-
-const pool = new Pool({
-    connectionString: connectionString,
-    ssl: { rejectUnauthorized: false }
-});
+import { pool } from './db.js';
 
 export default async function handler(request, response) {
     if (request.method !== 'PATCH') {
@@ -14,7 +7,7 @@ export default async function handler(request, response) {
 
     const { id, password, ...fieldsToUpdate } = request.body;
     
-    const adminPass = process.env.ADMIN_PASSWORD || '1234';
+    const adminPass = process.env.ADMIN_PASSWORD;
 
     if (password !== adminPass) {
         return response.status(401).json({ error: 'Unauthorized: Incorrect PIN' });
@@ -25,9 +18,7 @@ export default async function handler(request, response) {
     }
 
     try {
-        if (!connectionString) {
-            return response.status(500).json({ error: "Database URL missing on server" });
-        }
+
 
         // Auto-migrate column just in case it hits here first
         await pool.query(`ALTER TABLE transactions ADD COLUMN IF NOT EXISTS currency VARCHAR(10) DEFAULT 'EGP'`);

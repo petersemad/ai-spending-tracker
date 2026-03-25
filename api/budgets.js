@@ -1,17 +1,8 @@
-import { Pool } from 'pg';
-
-const connectionString = process.env.storage_POSTGRES_URL || process.env.DATABASE_URL || process.env.POSTGRES_URL || process.env.NEON_DATABASE_URL;
-
-const pool = new Pool({
-    connectionString: connectionString,
-    ssl: { rejectUnauthorized: false }
-});
+import { pool } from './db.js';
 
 export default async function handler(request, response) {
     try {
-        if (!connectionString) {
-            return response.status(500).json({ error: "Database URL missing on server" });
-        }
+
 
         // Ensure table exists on the fly
         await pool.query(`CREATE TABLE IF NOT EXISTS budgets (
@@ -21,7 +12,7 @@ export default async function handler(request, response) {
         )`);
 
         if (request.method === 'GET') {
-            if (request.query.password !== (process.env.ADMIN_PASSWORD || '1234')) return response.status(401).json({ error: 'Unauthorized PIN' });
+            if (request.query.password !== (process.env.ADMIN_PASSWORD)) return response.status(401).json({ error: 'Unauthorized PIN' });
             const result = await pool.query(`SELECT * FROM budgets`);
             return response.status(200).json({ budgets: result.rows });
         } 
@@ -29,7 +20,7 @@ export default async function handler(request, response) {
         if (request.method === 'POST') {
             const { category, amount, currency, password } = request.body;
             
-            const expectedPin = process.env.ADMIN_PASSWORD || '1234';
+            const expectedPin = process.env.ADMIN_PASSWORD;
             if (password !== expectedPin) {
                 return response.status(401).json({ success: false, error: 'Unauthorized: Incorrect PIN' });
             }
