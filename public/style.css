@@ -370,6 +370,10 @@ body::after {
 .cat-other { background: linear-gradient(135deg, rgba(156,163,175,0.15), rgba(75,85,99,0.15)) !important; color: #9ca3af !important; }
 
 /* Transaction Items */
+.tx-content {
+  position: relative;
+  z-index: 1;
+}
 .transaction-item {
   position: relative;
   display: flex;
@@ -1168,6 +1172,7 @@ body::after {
     width: 80px;
     background: linear-gradient(90deg, transparent, rgba(248, 113, 113, 0.3));
     display: flex;
+    z-index: 0;
     align-items: center;
     justify-content: center;
     color: #f87171;

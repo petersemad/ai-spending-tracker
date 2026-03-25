@@ -566,7 +566,6 @@ function renderTransactions(transactions) {
 
         const txHTML = `
             <div class="transaction-item" data-tx-id="${tx.id}">
-                <div class="tx-swipe-bg"><i class="ph ph-trash"></i></div>
                 <div class="tx-content" style="display: flex; width: 100%; justify-content: space-between; align-items: center;">
                     <div class="tx-left" style="display: flex; align-items: center; gap: 1rem;">
                         <input type="checkbox" class="tx-select-checkbox" data-id="${tx.id}" ${selectedTxIds.has(String(tx.id)) ? 'checked' : ''} onchange="toggleTxSelection('${tx.id}')">
