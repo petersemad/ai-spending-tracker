@@ -92,6 +92,11 @@ ai-spending-tracker/
 ### `GET / POST / DELETE /api/budgets`
 - **Purpose**: Stores category-specific monetary ceilings directly to the `budgets` schema overriding logic blocks. All methods mandate `x-admin-pin` HTTP Header.
 
+### `POST /api/auth`
+- **Purpose**: Hardware-backed biometric authentication (FaceID/TouchID).
+- **Architecture Note**: Consolidated into a single monolithic API route `action: 'generate-reg' | 'verify-reg' | 'generate-auth' | 'verify-auth'` to strictly bypass Vercel's Hobby Tier 12-Serverless-Function limit.
+- **Dependency Note**: Parses WebAuthn payloads securely using `@simplewebauthn/server`. Dual-compatibility written natively to handle both Legacy (v9) and Modern (v13) JSON signature structures without throwing `Buffer.from(undefined)` TypeErrors.
+
 ## Database Schema
 
 ```sql
@@ -118,9 +123,21 @@ CREATE TABLE IF NOT EXISTS recurring_vendors (
     category VARCHAR(255),
     currency VARCHAR(10) DEFAULT 'EGP'
 );
+CREATE TABLE IF NOT EXISTS passkeys (
+    id TEXT PRIMARY KEY,
+    public_key BYTEA NOT NULL,
+    counter BIGINT NOT NULL,
+    transports TEXT
+);
+
+CREATE TABLE IF NOT EXISTS webauthn_challenges (
+    id VARCHAR(255) PRIMARY KEY,
+    challenge TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
 ```
 
-*Note: All schemas are automatically generated via the centralized `initSchema()` lifecycle strictly located in `api/db.js` upon Vercel Serverless cold starts, removing redundant SQL setups from endpoint evaluations.*
+*Note: All schemas are automatically generated via the centralized `initSchema()` lifecycle strictly located in `api/db.js` upon Vercel Serverless cold starts. ⚠️ WARNING: `initSchema()` uses an aggressively cached Promise (`schemaInitPromise`) to strictly block subsequent queries like WebAuthn inserts from triggering native Postgres race conditions before schema construction completes.*
 
 ## Environment Variables
 
