@@ -121,19 +121,20 @@ window.registerBiometric = async () => {
     try {
         btn.innerHTML = '<i class="ph ph-spinner ph-spin"></i> Securing Hardware...';
         
-        const resp = await fetch('/api/auth/generate-reg', {
+        const resp = await fetch('/api/auth', {
             method: 'POST',
-            headers: { 'x-admin-pin': pin }
+            headers: { 'Content-Type': 'application/json', 'x-admin-pin': pin },
+            body: JSON.stringify({ action: 'generate-reg' })
         });
         const data = await resp.json();
         if (!data.options) throw new Error(data.error || 'Failed to fetch auth challenge from Postgres.');
         
         const attResp = await SimpleWebAuthnBrowser.startRegistration({ optionsJSON: data.options });
         
-        const verifyResp = await fetch('/api/auth/verify-reg', {
+        const verifyResp = await fetch('/api/auth', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'x-admin-pin': pin },
-            body: JSON.stringify({ challengeId: data.challengeId, credential: attResp })
+            body: JSON.stringify({ action: 'verify-reg', challengeId: data.challengeId, credential: attResp })
         });
         const verifyData = await verifyResp.json();
         
@@ -159,16 +160,20 @@ window.attemptBiometricLogin = async () => {
     try {
         btn.innerHTML = '<i class="ph ph-spinner ph-spin"></i> Validating FaceID/TouchID...';
         
-        const resp = await fetch('/api/auth/generate-auth', { method: 'POST' });
+        const resp = await fetch('/api/auth', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'generate-auth' })
+        });
         const data = await resp.json();
         if (!data.options) throw new Error(data.error || 'Failed to spawn biometric handshake');
         
         const asseResp = await SimpleWebAuthnBrowser.startAuthentication({ optionsJSON: data.options });
         
-        const verifyResp = await fetch('/api/auth/verify-auth', {
+        const verifyResp = await fetch('/api/auth', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ challengeId: data.challengeId, credential: asseResp })
+            body: JSON.stringify({ action: 'verify-auth', challengeId: data.challengeId, credential: asseResp })
         });
         const verifyData = await verifyResp.json();
         
