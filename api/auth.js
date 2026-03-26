@@ -1,5 +1,5 @@
 import { generateRegistrationOptions, verifyRegistrationResponse, generateAuthenticationOptions, verifyAuthenticationResponse } from '@simplewebauthn/server';
-import { pool, requireAuth } from './db.js';
+import { pool, requireAuth, initSchema } from './db.js';
 
 export default async function handler(req, res) {
     if (req.method !== 'POST') return res.status(405).json({ error: 'Method Not Allowed' });
@@ -16,6 +16,9 @@ export default async function handler(req, res) {
     const origin = req.headers.origin || (rpID === 'localhost' ? 'http://localhost:3000' : `https://${rpID}`);
 
     try {
+        // Enforce strong synchronization strictly before interacting with new tables inside Vercel cold instances
+        await initSchema();
+        
         if (action === 'generate-reg') {
             const options = await generateRegistrationOptions({
                 rpName: 'AI Spending Tracker',

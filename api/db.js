@@ -19,11 +19,16 @@ export const requireAuth = (req, res) => {
     return true;
 };
 
-export const initSchema = async () => {
+let schemaInitPromise = null;
+
+export const initSchema = () => {
     // Only run if pool exists
-    if (!pool) return;
+    if (!pool) return Promise.resolve();
     
-    try {
+    if (schemaInitPromise) return schemaInitPromise;
+    
+    schemaInitPromise = (async () => {
+        try {
         await pool.query(`CREATE TABLE IF NOT EXISTS transactions (
             id SERIAL PRIMARY KEY,
             amount DECIMAL(10,2),
@@ -74,6 +79,8 @@ export const initSchema = async () => {
     } catch (e) {
         console.error("Schema initialization error:", e);
     }
+    })();
+    return schemaInitPromise;
 };
 
 // Execute schema init automatically upon Vercel function cold start
