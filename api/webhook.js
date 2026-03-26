@@ -97,11 +97,15 @@ export default async function handler(request, response) {
             return response.status(200).json({ success: true, message: "Message intentionally ignored." });
         }
         
-
+        const parsedAmount = parseFloat(data.amount);
+        if (isNaN(parsedAmount)) {
+            console.error("Failed to mathematically parse AI amount:", data.amount);
+            return response.status(200).json({ success: true, message: "AI payload dropped due to invalid numerical amount inference.", data });
+        }
         
         await pool.query(
             `INSERT INTO transactions (amount, currency, type, vendor, category, raw_text) VALUES ($1, $2, $3, $4, $5, $6)`,
-            [data.amount, data.currency || 'EGP', data.type, data.vendor, data.category, message]
+            [parsedAmount, data.currency || 'EGP', data.type, data.vendor, data.category, message]
         );
         
         response.status(200).json({ success: true, data });

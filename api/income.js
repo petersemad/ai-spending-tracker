@@ -11,9 +11,10 @@ export default async function handler(request, response) {
         
         if (request.method === 'POST') {
             const { source_name, amount, currency } = request.body;
+            const parsedAmount = parseFloat(amount);
 
-            if (!source_name || amount === undefined) {
-                return response.status(400).json({ success: false, error: 'Missing source_name or amount' });
+            if (!source_name || isNaN(parsedAmount)) {
+                return response.status(400).json({ success: false, error: 'Missing source_name or valid numerical amount' });
             }
 
             await pool.query(`
@@ -21,7 +22,7 @@ export default async function handler(request, response) {
                 VALUES ($1, $2, $3)
                 ON CONFLICT (source_name) 
                 DO UPDATE SET amount = EXCLUDED.amount, currency = EXCLUDED.currency
-            `, [source_name, amount, currency || 'EGP']);
+            `, [source_name, parsedAmount, currency || 'EGP']);
 
             return response.status(200).json({ success: true });
         }

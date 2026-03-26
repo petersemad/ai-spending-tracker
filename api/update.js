@@ -22,8 +22,13 @@ export default async function handler(request, response) {
         for (const [key, value] of Object.entries(fieldsToUpdate)) {
             const allowedFields = ['amount', 'currency', 'type', 'vendor', 'category', 'date', 'raw_text'];
             if (allowedFields.includes(key)) {
+                let parsedValue = value;
+                if (key === 'amount') {
+                    parsedValue = parseFloat(value);
+                    if (isNaN(parsedValue)) return response.status(400).json({ error: 'Amount must be a strictly valid number' });
+                }
                 setClauses.push(`${key} = $${index}`);
-                values.push(value);
+                values.push(parsedValue);
                 index++;
             }
         }

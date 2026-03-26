@@ -11,9 +11,10 @@ export default async function handler(request, response) {
         
         if (request.method === 'POST') {
             const { category, amount, currency } = request.body;
+            const parsedAmount = parseFloat(amount);
 
-            if (!category || amount === undefined) {
-                return response.status(400).json({ success: false, error: 'Missing category or amount' });
+            if (!category || isNaN(parsedAmount)) {
+                return response.status(400).json({ success: false, error: 'Missing category or valid numerical amount' });
             }
 
             await pool.query(`
@@ -21,7 +22,7 @@ export default async function handler(request, response) {
                 VALUES ($1, $2, $3)
                 ON CONFLICT (category) 
                 DO UPDATE SET amount = EXCLUDED.amount, currency = EXCLUDED.currency
-            `, [category, amount, currency || 'EGP']);
+            `, [category, parsedAmount, currency || 'EGP']);
 
             return response.status(200).json({ success: true });
         }

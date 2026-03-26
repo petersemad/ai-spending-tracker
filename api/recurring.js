@@ -10,17 +10,17 @@ export default async function handler(req, res) {
         }
         
         if (req.method === 'POST') {
-            const { vendor, amount, category, currency, next_billing_date } = req.body;
+            const { vendor, amount, category, currency } = req.body;
+            const parsedAmount = parseFloat(amount);
+            
+            if (!vendor) return res.status(400).json({ error: 'Missing vendor' });
+            if (isNaN(parsedAmount)) return res.status(400).json({ error: 'Invalid or missing numerical amount' });
             
             await pool.query(`
-                INSERT INTO recurring_vendors (vendor, amount, category, currency, next_billing_date) 
-                VALUES ($1, $2, $3, $4, $5) 
-                ON CONFLICT (vendor) DO UPDATE SET 
-                    amount = EXCLUDED.amount, 
-                    category = EXCLUDED.category, 
-                    currency = EXCLUDED.currency,
-                    next_billing_date = EXCLUDED.next_billing_date
-            `, [vendor, amount || 0, category || 'Subscription', currency || 'EGP', next_billing_date || null]);
+                INSERT INTO recurring_vendors (vendor, amount, category, currency) 
+                VALUES ($1, $2, $3, $4) 
+                ON CONFLICT (vendor) DO UPDATE SET amount = EXCLUDED.amount, category = EXCLUDED.category, currency = EXCLUDED.currency
+            `, [vendor, parsedAmount, category || 'Subscription', currency || 'EGP']);
             return res.status(200).json({ success: true });
         }
         
