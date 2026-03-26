@@ -58,6 +58,34 @@ function updateThemeIcon() {
 }
 initTheme();
 
+// ======= DRAG AND DROP DASHBOARD =======
+function initDashboardDragAndDrop() {
+    const grid = document.querySelector('.dashboard-grid');
+    if (!grid) return;
+    
+    new Sortable(grid, {
+        animation: 250,
+        ghostClass: 'glass-card-moving',
+        delay: window.innerWidth < 768 ? 200 : 0, // Prevent accidental drags on mobile scrolling
+        onEnd: function () {
+            const order = Array.from(grid.children).map(card => card.classList[1]);
+            localStorage.setItem('dashboardLayout', JSON.stringify(order));
+        }
+    });
+
+    const saved = localStorage.getItem('dashboardLayout');
+    if (saved) {
+        try {
+            const orderClasses = JSON.parse(saved);
+            orderClasses.forEach(cls => {
+                const el = grid.querySelector(`.${cls}`);
+                if (el) grid.appendChild(el);
+            });
+        } catch(e){}
+    }
+}
+window.addEventListener('DOMContentLoaded', initDashboardDragAndDrop);
+
 window.attemptLogin = async () => {
     const pin = document.getElementById('authPinInput').value;
     if(!pin) return;
@@ -169,6 +197,10 @@ document.getElementById('exportCsvBtn')?.addEventListener('click', () => {
     window.promptExportCsv();
 });
 
+document.getElementById('exportPdfBtn')?.addEventListener('click', () => {
+    if (window.generatePdfWrapped) window.generatePdfWrapped();
+});
+
 window.promptExportCsv = () => {
     const existing = document.getElementById('exportModal');
     if (existing) existing.remove();
@@ -202,6 +234,92 @@ window.promptExportCsv = () => {
         </div>
     `;
     document.body.insertAdjacentHTML('beforeend', modalHTML);
+};
+
+window.generatePdfWrapped = async () => {
+    const btn = document.getElementById('exportPdfBtn');
+    if (!btn) return;
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '<i class="ph ph-spinner ph-spin"></i> Generating...';
+    btn.disabled = true;
+
+    try {
+        const baseCcy = document.getElementById('baseCurrency')?.value || 'EGP';
+        const baseRate = exchangeRates[baseCcy] || 1.0;
+        
+        let totalOut = 0;
+        let totalIn = 0;
+        let txCount = 0;
+        let catMap = {};
+
+        currentFilteredTransactions.forEach(tx => {
+            const amt = (parseFloat(tx.amount) || 0) * (exchangeRates[tx.currency || 'EGP'] || 1.0) / baseRate;
+            if (tx.type === 'Out') {
+                totalOut += amt;
+                txCount++;
+                const cat = (tx.category || 'Other').replace(/\s*\((Credit|Debit)\)/i, '').trim();
+                catMap[cat] = (catMap[cat] || 0) + amt;
+            } else {
+                totalIn += amt;
+            }
+        });
+
+        const d = new Date();
+        const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+        document.getElementById('pdfMonthLabel').innerText = `${monthNames[d.getMonth()]} ${d.getFullYear()}`;
+        document.getElementById('pdfBaseCurrencyLabel').innerText = `All values unified in ${baseCcy}`;
+        document.getElementById('pdfTotalSpent').innerText = formatCcy(totalOut, baseCcy);
+        document.getElementById('pdfSpentTrend').innerText = `across ${txCount} transactions`;
+        document.getElementById('pdfNetBalance').innerText = formatCcy(totalIn, baseCcy);
+
+        const sortedCats = Object.entries(catMap).sort((a,b) => b[1] - a[1]).slice(0,5);
+        let catHtml = '';
+        sortedCats.forEach(([cat, amt], index) => {
+            const pct = totalOut > 0 ? Math.round((amt / totalOut) * 100) : 0;
+            catHtml += `
+                <div style="background: rgba(255,255,255,0.05); padding: 15px 20px; border-radius: 12px; display: flex; justify-content: space-between; align-items: center;">
+                    <div style="display: flex; align-items: center; gap: 15px;">
+                        <span style="font-size: 1.2rem; font-weight: bold; color: #a3a3a3; width: 25px;">#${index+1}</span>
+                        <span style="font-size: 1.2rem; font-weight: 500;">${cat}</span>
+                    </div>
+                    <div style="text-align: right;">
+                        <div style="font-size: 1.2rem; font-weight: bold;">${formatCcy(amt, baseCcy)}</div>
+                        <div style="font-size: 0.9rem; color: #a3a3a3;">${pct}% of spending</div>
+                    </div>
+                </div>
+            `;
+        });
+        document.getElementById('pdfTopCategories').innerHTML = catHtml;
+
+        const container = document.getElementById('pdfWrappedContainer');
+        container.style.left = '0';
+        container.style.top = '0';
+        container.style.zIndex = '-9999';
+
+        const canvas = await html2canvas(container, {
+            scale: 2, backgroundColor: '#0a0a0a', logging: false, width: 800, height: 1131
+        });
+        
+        container.style.left = '-9999px';
+        container.style.top = '-9999px';
+
+        const imgData = canvas.toDataURL('image/jpeg', 0.95);
+        const { jsPDF } = window.jspdf;
+        const pdf = new jsPDF('p', 'mm', 'a4');
+        const pdfWidth = pdf.internal.pageSize.getWidth();
+        const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+        
+        pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight);
+        pdf.save(`AI_Spending_Wrapped_${monthNames[d.getMonth()]}_${d.getFullYear()}.pdf`);
+        
+        showToast('PDF Exported Successfully!', 'success');
+    } catch (e) {
+        console.error(e);
+        showToast('Failed to generate PDF', 'error');
+    } finally {
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+    }
 };
 
 window.executeExport = (type) => {
@@ -573,7 +691,7 @@ function renderTransactions(transactions) {
                             <i class="ph ${catMap.icon}"></i>
                         </div>
                         <div class="tx-details">
-                            <h4>${tx.vendor || 'Unknown Vendor'}</h4>
+                            <h4 style="display:flex; align-items:center; flex-wrap:wrap; gap:0.25rem;">${(tx.vendor || 'Unknown Vendor').replace(/(#\w+)/g, '<span class="tx-badge" style="background:rgba(167, 139, 250, 0.15); color:var(--accent-purple); border-color:rgba(167, 139, 250, 0.3); font-weight:600; text-transform:none; margin:0; padding: 2px 6px;">$1</span>')}</h4>
                             <p>
                                 <span class="tx-badge">${tx.category || 'Uncategorized'}</span>
                                 ${isDupe ? '<span class="tx-duplicate-badge">Possible Dupe</span>' : ''}
@@ -734,7 +852,7 @@ function renderSubscriptions(transactions) {
         
         const cat = dbSub.category !== 'Subscription' && dbSub.category ? dbSub.category : (vendorMap[v] ? vendorMap[v].cat : 'Manual Addition');
         
-        activeSubs.push({ vendor: v, avgAmount: avg, count: count, category: cat, currency: dbSub.currency || 'EGP', baseAmt: dbSub.amount || 0 });
+        activeSubs.push({ vendor: v, avgAmount: avg, count: count, category: cat, currency: dbSub.currency || 'EGP', baseAmt: dbSub.amount || 0, next_billing_date: dbSub.next_billing_date });
         monthlyBurn += avg;
     });
 
@@ -758,6 +876,25 @@ function renderSubscriptions(transactions) {
         const unifiedAvgBase = sub.avgAmount / baseRateEgp;
         const isForeignToDisplay = (sub.currency !== baseCcy) && (sub.baseAmt > 0);
         const originalStr = isForeignToDisplay ? `≈ ${formatCcy(sub.baseAmt, sub.currency)} • ` : '';
+        let dueBadge = '';
+        if (sub.next_billing_date) {
+            const due = new Date(sub.next_billing_date);
+            const today = new Date();
+            today.setHours(0,0,0,0);
+            
+            if (due < today) {
+                due.setMonth(due.getMonth() + 1);
+            }
+            
+            const diffTime = due - today;
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            
+            if (diffDays <= 3) {
+                dueBadge = `<span style="color: #f87171; font-weight: 600; font-size: 0.75rem; background: rgba(248,113,113,0.1); padding: 0.2rem 0.5rem; border-radius: 4px; margin-left: 0.5rem;"><i class="ph ph-warning-circle"></i> Renews in ${diffDays} day${diffDays !== 1 ? 's' : ''}</span>`;
+            } else {
+                dueBadge = `<span style="color: var(--text-med); font-size: 0.75rem; margin-left: 0.5rem;"><i class="ph ph-calendar"></i> In ${diffDays} days</span>`;
+            }
+        }
 
         html += `
             <div class="transaction-item sub-item">
@@ -765,17 +902,19 @@ function renderSubscriptions(transactions) {
                     <div class="tx-left" style="flex:1;">
                         <div class="tx-icon ${catMap.class}"><i class="ph ${catMap.icon}"></i></div>
                         <div class="tx-details">
-                            <h4>${sub.vendor}</h4>
+                            <h4 style="display:flex; align-items:center;">${sub.vendor} ${dueBadge}</h4>
                             <p><span class="tx-badge">${sub.category}</span> • Seen ${sub.count} times</p>
                         </div>
                     </div>
                     <div class="tx-bottom-mobile" style="display: flex; align-items: center; justify-content: flex-end; gap: 1rem;">
                         <div class="tx-right text-right">
-                            <div class="tx-amount text-gradient-red">${sub.avgAmount > 0 ? formatCcy(unifiedAvgBase, baseCcy) : formatCcy(0, baseCcy)}</div>
-                            <span style="font-size:0.7em; color:var(--text-med); display:block;">${originalStr}/mo avg</span>
+                            <h3 class="tx-amount negative">
+                                <span class="currency-label">${baseCcy}</span>${formatToCcy(unifiedAvgBase)}
+                            </h3>
+                            <p class="tx-date" style="font-size: 0.8rem; margin-top: 0.2rem;">${originalStr}</p>
                         </div>
-                        <div class="tx-actions" style="display: flex; gap: 0.35rem;">
-                            <button class="action-btn edit-btn" onclick="openSubscriptionModal('${safeVendor}', '${sub.baseAmt}', '${sub.category}', '${sub.currency}')" title="Edit details">
+                        <div class="tx-actions">
+                            <button class="action-btn edit-btn" onclick="openSubscriptionModal('${safeVendor}', '${sub.baseAmt}', '${sub.category}', '${sub.currency}', '${sub.next_billing_date || ''}')" title="Edit details">
                                 <i class="ph ph-pencil-simple"></i>
                             </button>
                             <button class="action-btn delete-btn" onclick="toggleRecurring('${safeVendor}', false, true)" title="Remove Subscription">
@@ -1079,7 +1218,7 @@ window.promptAddSubscription = () => {
     openSubscriptionModal();
 };
 
-window.openSubscriptionModal = (vendor = '', amount = '', category = '', currency = 'EGP') => {
+window.openSubscriptionModal = (vendor = '', amount = '', category = '', currency = 'EGP', next_billing_date = '') => {
     const existing = document.getElementById('subModal');
     if (existing) existing.remove();
     
@@ -1110,6 +1249,10 @@ window.openSubscriptionModal = (vendor = '', amount = '', category = '', currenc
                     <label>Category Label</label>
                     <input type="text" id="subCategory" class="glass-input" value="${category}" placeholder="e.g. Entertainment">
                 </div>
+                <div style="margin-bottom: 0.75rem;">
+                    <label>Next Billing Date (Optional)</label>
+                    <input type="date" id="subDate" class="glass-input" value="${next_billing_date ? next_billing_date.split('T')[0] : ''}">
+                </div>
                 <div class="modal-actions" style="margin-top: 1.5rem;">
                     <button class="modal-btn cancel" onclick="window.closeSubModal()">Cancel</button>
                     <button class="modal-btn confirm" onclick="window.saveSubscription()">Save</button>
@@ -1130,6 +1273,7 @@ window.saveSubscription = async () => {
     const amount = document.getElementById('subAmount').value;
     const category = document.getElementById('subCategory').value.trim();
     const currency = document.getElementById('subCcy').value;
+    const next_billing_date = document.getElementById('subDate').value || null;
     const password = sessionStorage.getItem('spendAuth');
     
     if (!vendor) return showToast('Vendor name required', 'warning');
@@ -1139,7 +1283,7 @@ window.saveSubscription = async () => {
         const response = await fetch('/api/recurring', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'x-admin-pin': sessionStorage.getItem('spendAuth') },
-            body: JSON.stringify({ vendor, amount: parseFloat(amount) || 0, category, currency })
+            body: JSON.stringify({ vendor, amount: parseFloat(amount) || 0, category, currency, next_billing_date })
         });
         const result = await response.json();
         if (result.success) {
@@ -1333,6 +1477,7 @@ window.openEditModal = (id) => {
                 
                 <div class="modal-actions" style="margin-top: 1.5rem;">
                     <button class="modal-btn cancel" onclick="window.closeModal()">Cancel</button>
+                    ${isEdit ? `<button class="modal-btn" style="background:rgba(255,255,255,0.05); color:white; border: 1px solid rgba(255,255,255,0.1);" onclick="window.openSplitModal(${id})"><i class="ph ph-arrows-split"></i> Split</button>` : ''}
                     <button class="modal-btn confirm" onclick="submitEdit(${id})">${isEdit ? 'Save Changes' : 'Add Transaction'}</button>
                 </div>
             </div>
@@ -1361,6 +1506,114 @@ window.toggleCustomCategory = () => {
 window.closeModal = () => {
     const modal = document.getElementById('editModal');
     if (modal) modal.remove();
+};
+
+window.openSplitModal = (id) => {
+    window.closeModal();
+    const tx = allTransactions.find(t => t.id === id);
+    if (!tx) return;
+
+    const defaultCategories = [
+        'Transport', 'Food & Drink', 'Groceries', 'Shopping', 
+        'Entertainment', 'Utilities', 'Health', 'Education', 
+        'Transfer', 'ATM', 'Subscription', 'Refund', 'Other'
+    ];
+    const customCats = JSON.parse(localStorage.getItem('customCategories') || '[]');
+    const currentCat = (tx.category || '').replace(/\s*\((Credit|Debit)\)/i, '').trim();
+    
+    const options1 = [...defaultCategories, ...customCats].map(c => `<option value="${c}" ${c === currentCat ? 'selected' : ''}>${c}</option>`).join('');
+    const options2 = [...defaultCategories, ...customCats].map(c => `<option value="${c}">${c}</option>`).join('');
+
+    const modal = document.createElement('div');
+    modal.id = 'splitModal';
+    modal.innerHTML = `
+        <div class="modal-overlay" onclick="document.getElementById('splitModal').remove()">
+            <div class="modal-box" onclick="event.stopPropagation()">
+                <h3>Split Transaction</h3>
+                <p style="color:var(--text-med); margin-bottom:1rem; font-size:0.9rem;">Total: ${tx.amount} ${tx.currency} at ${tx.vendor}</p>
+                
+                <div style="margin-bottom: 1rem; padding:1rem; background:rgba(0,0,0,0.2); border-radius:8px;">
+                    <h4 style="margin-bottom:0.5rem; font-size:0.9rem;">New Record 1</h4>
+                    <div style="display:flex; gap:0.5rem;">
+                        <input type="number" id="split1Amount" class="glass-input" placeholder="Amount" step="0.01" style="flex:1;" oninput="window.updateSplit2(${tx.amount})" value="${(tx.amount / 2).toFixed(2)}">
+                        <select id="split1Category" class="glass-select" style="flex:1;">${options1}</select>
+                    </div>
+                </div>
+
+                <div style="margin-bottom: 1rem; padding:1rem; background:rgba(0,0,0,0.2); border-radius:8px;">
+                    <h4 style="margin-bottom:0.5rem; font-size:0.9rem;">New Record 2 (Remainder)</h4>
+                    <div style="display:flex; gap:0.5rem;">
+                        <input type="number" id="split2Amount" class="glass-input" placeholder="Amount" step="0.01" style="flex:1;" readonly value="${(tx.amount / 2).toFixed(2)}">
+                        <select id="split2Category" class="glass-select" style="flex:1;">${options2}</select>
+                    </div>
+                </div>
+
+                <div class="modal-actions" style="margin-top: 1.5rem;">
+                    <button class="modal-btn cancel" onclick="document.getElementById('splitModal').remove()">Cancel</button>
+                    <button class="modal-btn confirm" id="confirmSplitBtn" onclick="window.submitSplit(${id})">Save Split</button>
+                </div>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modal);
+};
+
+window.updateSplit2 = (total) => {
+    const p1 = parseFloat(document.getElementById('split1Amount').value) || 0;
+    const p2 = Math.max(0, total - p1);
+    document.getElementById('split2Amount').value = p2.toFixed(2);
+};
+
+window.submitSplit = async (id) => {
+    const tx = allTransactions.find(t => t.id === id);
+    if (!tx) return;
+
+    const amt1 = parseFloat(document.getElementById('split1Amount').value) || 0;
+    const cat1 = document.getElementById('split1Category').value;
+    
+    const amt2 = parseFloat(document.getElementById('split2Amount').value) || 0;
+    const cat2 = document.getElementById('split2Category').value;
+
+    if (amt1 <= 0 || amt2 <= 0) {
+        return showToast('Both splits must have an amount > 0', 'error');
+    }
+
+    const auth = sessionStorage.getItem('spendAuth');
+    const suffix = tx.type === 'Out' ? (tx.category.includes('Debit') ? ' (Debit)' : ' (Credit)') : '';
+
+    const btn = document.getElementById('confirmSplitBtn');
+    btn.innerHTML = '<i class="ph ph-spinner ph-spin"></i> Splitting...';
+    btn.disabled = true;
+
+    try {
+        await fetch('/api/delete', { method: 'DELETE', headers: { 'Content-Type': 'application/json', 'x-admin-pin': auth }, body: JSON.stringify({ id }) });
+        
+        await fetch('/api/add', {
+            method: 'POST', headers: { 'Content-Type': 'application/json', 'x-admin-pin': auth },
+            body: JSON.stringify({
+                amount: amt1, currency: tx.currency, type: tx.type, 
+                vendor: tx.vendor + ' (Split 1/2)', category: cat1 + suffix, 
+                date: tx.date, raw_text: tx.raw_text
+            })
+        });
+
+        await fetch('/api/add', {
+            method: 'POST', headers: { 'Content-Type': 'application/json', 'x-admin-pin': auth },
+            body: JSON.stringify({
+                amount: amt2, currency: tx.currency, type: tx.type, 
+                vendor: tx.vendor + ' (Split 2/2)', category: cat2 + suffix, 
+                date: tx.date, raw_text: tx.raw_text
+            })
+        });
+
+        document.getElementById('splitModal').remove();
+        showToast('Successfully split transaction', 'success');
+        fetchData();
+    } catch (error) {
+        showToast('Failed to execute complete split.', 'error');
+        btn.innerHTML = 'Save Split';
+        btn.disabled = false;
+    }
 };
 
 window.submitEdit = async (id) => {
@@ -2041,10 +2294,40 @@ function renderInsights(transactions) {
     forecastHTML += `<div class="mom-row"><span class="mom-label">Projected variable</span><span class="mom-value">${formatCcy(projectedVariable, baseCcy)}</span></div>`;
     forecastHTML += `<div class="mom-row" style="border-top:1px solid rgba(255,255,255,0.05); margin-top:0.25rem; padding-top:0.5rem;"><span class="mom-label" style="font-weight:600;">Total forecast</span><span class="mom-value mom-up" style="font-size:1.1rem;">${formatCcy(totalForecast, baseCcy)}</span></div>`;
 
+    let usdNet = 0, eurNet = 0;
+    transactions.forEach(tx => {
+        const amt = parseFloat(tx.amount) || 0;
+        if (tx.currency === 'USD') usdNet += tx.type === 'In' ? amt : -amt;
+        if (tx.currency === 'EUR') eurNet += tx.type === 'In' ? amt : -amt;
+    });
+    
+    const baselineUsd = (exchangeRates['USD'] || 50) * 0.985; 
+    const baselineEur = (exchangeRates['EUR'] || 55) * 0.985;
+    const originEgp = (usdNet * baselineUsd) + (eurNet * baselineEur);
+    const currEgp = (usdNet * (exchangeRates['USD'] || 50)) + (eurNet * (exchangeRates['EUR'] || 55));
+    const deltaEgp = currEgp - originEgp;
+    
+    let arbitrageHTML = '';
+    if (usdNet > 0 || eurNet > 0) {
+        arbitrageHTML = `
+            <div class="analytics-widget" style="grid-column: 1 / -1; display:flex; flex-wrap: wrap; gap: 1.5rem; align-items: center; justify-content: space-between; border: 1px solid rgba(59, 130, 246, 0.3); background: rgba(59, 130, 246, 0.05);">
+                <div style="flex: 1; min-width: 250px;">
+                    <h4 style="color: #60a5fa; display:flex; align-items:center; gap:0.5rem;"><i class="ph ph-trend-up"></i> FX Purchasing Power</h4>
+                    <p style="color:var(--text-med); font-size:0.9rem; line-height: 1.5; margin-top:0.5rem;">By holding ${formatCcy(usdNet, 'USD')} and ${formatCcy(eurNet, 'EUR')} instead of EGP during the last 30 days of market volatility, your portfolio mathematically absorbed inflation effects natively.</p>
+                </div>
+                <div style="text-align: right; min-width: 150px;">
+                    <p style="font-size:0.85rem; color:var(--text-low); margin-bottom:0.25rem;">Value preserved</p>
+                    <h2 class="text-gradient-green">+${formatCcy(deltaEgp, 'EGP')}</h2>
+                </div>
+            </div>
+        `;
+    }
+
     grid.innerHTML = `
         <div class="analytics-widget">${top5HTML}</div>
         <div class="analytics-widget">${momHTML}</div>
         <div class="analytics-widget">${forecastHTML}</div>
+        ${arbitrageHTML}
     `;
 
     // --- HEATMAP ---

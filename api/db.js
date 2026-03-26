@@ -48,6 +48,7 @@ export const initSchema = async () => {
             category VARCHAR(255),
             currency VARCHAR(10) DEFAULT 'EGP'
         )`);
+        await pool.query(`ALTER TABLE recurring_vendors ADD COLUMN IF NOT EXISTS next_billing_date DATE`).catch(() => {});
         await pool.query(`ALTER TABLE recurring_vendors ADD COLUMN IF NOT EXISTS amount DECIMAL(10,2)`).catch(() => {});
         await pool.query(`ALTER TABLE recurring_vendors ADD COLUMN IF NOT EXISTS category VARCHAR(255)`).catch(() => {});
         await pool.query(`ALTER TABLE recurring_vendors ADD COLUMN IF NOT EXISTS currency VARCHAR(10) DEFAULT 'EGP'`).catch(() => {});

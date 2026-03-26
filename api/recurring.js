@@ -10,13 +10,17 @@ export default async function handler(req, res) {
         }
         
         if (req.method === 'POST') {
-            const { vendor, amount, category, currency } = req.body;
+            const { vendor, amount, category, currency, next_billing_date } = req.body;
             
             await pool.query(`
-                INSERT INTO recurring_vendors (vendor, amount, category, currency) 
-                VALUES ($1, $2, $3, $4) 
-                ON CONFLICT (vendor) DO UPDATE SET amount = EXCLUDED.amount, category = EXCLUDED.category, currency = EXCLUDED.currency
-            `, [vendor, amount || 0, category || 'Subscription', currency || 'EGP']);
+                INSERT INTO recurring_vendors (vendor, amount, category, currency, next_billing_date) 
+                VALUES ($1, $2, $3, $4, $5) 
+                ON CONFLICT (vendor) DO UPDATE SET 
+                    amount = EXCLUDED.amount, 
+                    category = EXCLUDED.category, 
+                    currency = EXCLUDED.currency,
+                    next_billing_date = EXCLUDED.next_billing_date
+            `, [vendor, amount || 0, category || 'Subscription', currency || 'EGP', next_billing_date || null]);
             return res.status(200).json({ success: true });
         }
         
