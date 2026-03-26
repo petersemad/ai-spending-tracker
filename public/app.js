@@ -912,7 +912,7 @@ function renderSubscriptions(transactions) {
                     <div class="tx-bottom-mobile" style="display: flex; align-items: center; justify-content: flex-end; gap: 1rem;">
                         <div class="tx-right text-right">
                             <h3 class="tx-amount negative">
-                                <span class="currency-label">${baseCcy}</span>${formatToCcy(unifiedAvgBase)}
+                                <span class="currency-label">${baseCcy}</span>${formatCcy(unifiedAvgBase, baseCcy)}
                             </h3>
                             <p class="tx-date" style="font-size: 0.8rem; margin-top: 0.2rem;">${originalStr}</p>
                         </div>
