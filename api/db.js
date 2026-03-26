@@ -58,6 +58,19 @@ export const initSchema = async () => {
             amount DECIMAL(10,2),
             currency VARCHAR(10) DEFAULT 'EGP'
         )`);
+
+        await pool.query(`CREATE TABLE IF NOT EXISTS passkeys (
+            id TEXT PRIMARY KEY,
+            public_key BYTEA NOT NULL,
+            counter BIGINT NOT NULL,
+            transports TEXT
+        )`);
+
+        await pool.query(`CREATE TABLE IF NOT EXISTS webauthn_challenges (
+            id VARCHAR(255) PRIMARY KEY,
+            challenge TEXT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )`);
     } catch (e) {
         console.error("Schema initialization error:", e);
     }

@@ -110,7 +110,118 @@ window.attemptLogin = async () => {
     }
 };
 
+// ======= WEBAUTHN BIOMETRICTS LOGIC =======
+window.registerBiometric = async () => {
+    const pin = sessionStorage.getItem('spendAuth');
+    if (!pin) return showToast('You must be logged in to register biometrics.', 'error');
+    if (typeof SimpleWebAuthnBrowser === 'undefined') return showToast('Biometrics library not loaded.', 'error');
+
+    const btn = document.getElementById('enableBiometricsBtn');
+    const originalHtml = btn.innerHTML;
+    try {
+        btn.innerHTML = '<i class="ph ph-spinner ph-spin"></i> Securing Hardware...';
+        
+        const resp = await fetch('/api/auth/generate-reg', {
+            method: 'POST',
+            headers: { 'x-admin-pin': pin }
+        });
+        const data = await resp.json();
+        if (!data.options) throw new Error(data.error || 'Failed to fetch auth challenge from Postgres.');
+        
+        const attResp = await SimpleWebAuthnBrowser.startRegistration({ optionsJSON: data.options });
+        
+        const verifyResp = await fetch('/api/auth/verify-reg', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'x-admin-pin': pin },
+            body: JSON.stringify({ challengeId: data.challengeId, credential: attResp })
+        });
+        const verifyData = await verifyResp.json();
+        
+        if (verifyData.success) {
+            localStorage.setItem('biometric_enabled', 'true');
+            showToast('FaceID/TouchID strictly bound to your device!', 'success', 5000);
+        } else {
+            throw new Error(verifyData.error || 'Cryptographic verification isolated check failed');
+        }
+    } catch (err) {
+        console.error(err);
+        showToast(err.message || 'Canceled hardware key mapping', 'error');
+    } finally {
+        btn.innerHTML = originalHtml;
+    }
+};
+
+window.attemptBiometricLogin = async () => {
+    if (typeof SimpleWebAuthnBrowser === 'undefined') return showToast('Biometric modules offline.', 'error');
+    
+    const btn = document.getElementById('authBiometricBtn');
+    const originalHtml = btn.innerHTML;
+    try {
+        btn.innerHTML = '<i class="ph ph-spinner ph-spin"></i> Validating FaceID/TouchID...';
+        
+        const resp = await fetch('/api/auth/generate-auth', { method: 'POST' });
+        const data = await resp.json();
+        if (!data.options) throw new Error(data.error || 'Failed to spawn biometric handshake');
+        
+        const asseResp = await SimpleWebAuthnBrowser.startAuthentication({ optionsJSON: data.options });
+        
+        const verifyResp = await fetch('/api/auth/verify-auth', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ challengeId: data.challengeId, credential: asseResp })
+        });
+        const verifyData = await verifyResp.json();
+        
+        if (verifyData.success && verifyData.pin) {
+            // Handshake passed — Securely extract exact .env PIN matching session states
+            sessionStorage.setItem('spendAuth', verifyData.pin);
+            
+            btn.innerHTML = '<i class="ph ph-fingerprint"></i> Biometric Verified';
+            btn.style.color = '#34d399';
+            btn.style.background = 'rgba(52, 211, 153, 0.15)';
+            btn.style.borderColor = '#34d399';
+            btn.style.filter = 'drop-shadow(0 0 16px rgba(52, 211, 153, 0.4))';
+            
+            const lockIcon = document.querySelector('#loginScreen .ph-lock-key');
+            if(lockIcon) {
+                lockIcon.classList.remove('ph-lock-key');
+                lockIcon.classList.add('ph-lock-key-open');
+                lockIcon.style.color = '#34d399';
+                lockIcon.style.filter = 'drop-shadow(0 0 16px rgba(52, 211, 153, 0.6))';
+            }
+            
+            setTimeout(() => {
+                document.getElementById('loginScreen').classList.add('login-success-anim');
+                setTimeout(() => {
+                    document.getElementById('loginScreen').style.display = 'none';
+                    document.getElementById('loginScreen').classList.remove('login-success-anim');
+                    
+                    const appWrapper = document.getElementById('appWrapper');
+                    appWrapper.style.display = 'block';
+                    appWrapper.classList.add('app-reveal-anim');
+                    
+                    fetchData();
+                    setTimeout(() => appWrapper.classList.remove('app-reveal-anim'), 1000);
+                }, 500);
+            }, 500);
+        } else {
+            throw new Error(verifyData.error || 'Hardware Key signature rejected.');
+        }
+    } catch (err) {
+        console.error(err);
+        showToast('Biometric unlock aborted or failed.', 'error');
+        if (btn.innerHTML.includes('Validating')) {
+            btn.innerHTML = originalHtml;
+        }
+    }
+};
+
 document.addEventListener('DOMContentLoaded', () => {
+    const biometricBtn = document.getElementById('authBiometricBtn');
+    if (biometricBtn && localStorage.getItem('biometric_enabled') === 'true') {
+        biometricBtn.style.display = 'flex';
+    }
+
     const token = sessionStorage.getItem('spendAuth');
     if(token) {
         document.getElementById('loginScreen').style.display = 'none';

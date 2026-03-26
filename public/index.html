@@ -13,6 +13,7 @@
     <script src="https://fastly.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+    <script src="https://unpkg.com/@simplewebauthn/browser/dist/bundle/index.umd.min.js"></script>
 </head>
 <body>
     <div class="container">
@@ -24,6 +25,7 @@
             <p style="color: var(--text-med); margin-bottom: 2rem; font-size: 0.95rem; line-height: 1.5;">Please enter your authorization PIN to decrypt the session.</p>
             <input type="password" id="authPinInput" class="glass-input" placeholder="••••" style="text-align: center; font-size: 1.4rem; letter-spacing: 0.4rem; margin-bottom: 1.5rem; padding: 1rem;" onkeypress="if(event.key === 'Enter') attemptLogin()">
             <button id="authLoginBtn" class="btn-glow" style="width: 100%; justify-content: center; font-size: 1.05rem; padding: 1rem;" onclick="attemptLogin()">Unlock Dashboard</button>
+            <button id="authBiometricBtn" class="btn-glow" style="width: 100%; justify-content: center; font-size: 1.05rem; padding: 1rem; margin-top: 0.75rem; background: rgba(52, 211, 153, 0.05); border-color: rgba(52, 211, 153, 0.2); color: #34d399; display: none;" onclick="attemptBiometricLogin()"><i class="ph ph-fingerprint"></i> Biometric Unlock</button>
         </div>
         
         <div id="appWrapper" style="display: none;">
@@ -33,6 +35,9 @@
                 <p>Syncing via Android SMS <i class="ph-fill ph-check-circle"></i></p>
             </div>
             <div class="header-right" style="display: flex; gap: 0.5rem; align-items: center;">
+                <button id="enableBiometricsBtn" class="btn-glow" onclick="registerBiometric()" style="border-color: rgba(167, 139, 250, 0.4); color: var(--accent-purple);">
+                    <i class="ph ph-fingerprint"></i> Setup FaceID
+                </button>
                 <button id="themeToggle" class="theme-toggle" title="Toggle Light/Dark Mode">
                     <i class="ph ph-sun"></i>
                 </button>
