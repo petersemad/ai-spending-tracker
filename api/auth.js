@@ -49,9 +49,11 @@ export default async function handler(req, res) {
             });
 
             if (verification.verified && verification.registrationInfo) {
-                const { credentialID, credentialPublicKey, counter } = verification.registrationInfo;
-                const pubKeyBuffer = Buffer.from(credentialPublicKey);
-                const credentialIDString = Buffer.from(credentialID).toString('base64url');
+                const { credential, credentialDeviceType } = verification.registrationInfo;
+                const { id, publicKey, counter, transports } = credential;
+                
+                const pubKeyBuffer = Buffer.from(publicKey);
+                const credentialIDString = id;
 
                 await pool.query(
                     `INSERT INTO passkeys (id, public_key, counter, transports) VALUES ($1, $2, $3, $4)
