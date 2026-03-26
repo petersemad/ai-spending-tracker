@@ -214,6 +214,14 @@ body::after {
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  background: rgba(14, 15, 23, 0.65);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  padding: 1rem 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .tab-nav::-webkit-scrollbar {
@@ -370,6 +378,32 @@ body::after {
 .cat-other { background: linear-gradient(135deg, rgba(156,163,175,0.15), rgba(75,85,99,0.15)) !important; color: #9ca3af !important; }
 
 /* Transaction Items */
+details.sms-expand {
+    width: 100%;
+    margin-top: 0.75rem;
+    font-size: 0.75rem;
+    color: var(--text-low);
+    background: rgba(0,0,0,0.2);
+    border-radius: 8px;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid rgba(255,255,255,0.03);
+}
+details.sms-expand summary {
+    cursor: pointer;
+    opacity: 0.7;
+    transition: opacity 0.2s ease, color 0.2s ease;
+    outline: none;
+    font-weight: 500;
+    list-style: none; /* Hide default arrow in standard browsers */
+}
+details.sms-expand summary::-webkit-details-marker {
+    display: none; /* Hide default arrow in Safari */
+}
+details.sms-expand summary:hover { 
+    opacity: 1; 
+    color: var(--text-med); 
+}
+
 .tx-content {
   position: relative;
   z-index: 1;
@@ -387,6 +421,8 @@ body::after {
   box-shadow: 0 4px 15px rgba(0,0,0,0.1);
 }
 .transaction-item:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 10px 25px rgba(0,0,0,0.25);
   background: rgba(255, 255, 255, 0.04);
   border-color: rgba(255, 255, 255, 0.1);
 }
@@ -1316,6 +1352,15 @@ body.light-mode #selectAllTxsCheckbox {
 .custom-tooltip.visible {
   opacity: 1;
   transform: translate(-50%, -100%) translateY(-4px);
+}
+
+@keyframes modalScaleIn {
+  0% { opacity: 0; transform: scale(0.95) translateY(10px); }
+  100% { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.modal-box {
+  animation: modalScaleIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
 }
 
 
