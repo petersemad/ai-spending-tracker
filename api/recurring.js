@@ -2,7 +2,7 @@ import { pool } from './db.js';
 
 export default async function handler(req, res) {
     try {
-        if (!connectionString) return res.status(500).json({ error: "Database URL missing on server" });
+        if (!pool) return res.status(500).json({ error: "Database URL missing on server" });
 
         await pool.query(`CREATE TABLE IF NOT EXISTS recurring_vendors (
             vendor VARCHAR(255) PRIMARY KEY,
