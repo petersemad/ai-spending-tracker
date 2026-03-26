@@ -438,6 +438,9 @@ async function fetchData() {
             <div class="loading-state">
                 <i class="ph ph-warning-circle" style="font-size: 2rem; color: var(--money-out); margin-bottom: 1rem;"></i>
                 <p>Failed to connect to the backend server.</p>
+                <div style="margin-top: 1rem; padding: 1rem; background: rgba(248, 113, 113, 0.1); border-radius: 8px; font-family: monospace; font-size: 0.8rem; color: #f87171; text-align: left; overflow: auto; max-width: 100%; white-space: pre-wrap;">
+                    ${error.stack || error.message || String(error)}
+                </div>
             </div>
         `;
     }
