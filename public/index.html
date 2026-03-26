@@ -293,21 +293,21 @@
         </div> <!-- End appWrapper -->
 
         <!-- Manage Passkeys Modal -->
-        <div class="modal-overlay" id="managePasskeysModal" onclick="closeManagePasskeysModal(event)">
-            <div class="modal custom-scrollbar">
-                <div class="modal-header">
-                    <h2><i class="ph ph-fingerprint"></i> Hardware Security</h2>
-                    <button class="close-btn" onclick="closeManagePasskeysModal()"><i class="ph ph-x"></i></button>
+        <div id="managePasskeysModal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.75); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); z-index: 9999; align-items: center; justify-content: center;" onclick="closeManagePasskeysModal(event)">
+            <div style="background: rgba(14, 15, 23, 0.85); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 20px; padding: 2rem; width: 90%; max-width: 420px; position: relative; box-shadow: 0 24px 64px rgba(0,0,0,0.8); color: white;">
+                <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 1rem; margin-bottom: 1.5rem;">
+                    <h2 style="font-size: 1.35rem; font-weight: 600; margin: 0; display: flex; align-items: center; gap: 0.5rem;"><i class="ph ph-fingerprint" style="color: var(--accent-purple);"></i> Hardware Security</h2>
+                    <button style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 50%; color: var(--text-med); cursor: pointer; font-size: 1.2rem; padding: 0.4rem; display: flex; align-items: center; justify-content: center; transition: all 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.1)'" onmouseout="this.style.background='rgba(255,255,255,0.05)'" onclick="closeManagePasskeysModal()"><i class="ph ph-x"></i></button>
                 </div>
-                <div style="margin-bottom: 20px;">
-                    <p style="color: var(--text-med); font-size: 0.9em; margin-bottom: 15px;">Biometric passkeys allow you to instantly unlock your dashboard using FaceID, TouchID, or native Windows Hello without ever typing your plaintext PIN.</p>
-                    <button class="btn-glow" onclick="registerBiometric()" id="triggerNewBiometricBtn" style="width: 100%; justify-content: center; padding: 0.8rem;">
+                <div style="margin-bottom: 24px;">
+                    <p style="color: var(--text-med); font-size: 0.9rem; line-height: 1.5; margin-bottom: 1rem;">Biometric passkeys allow you to instantly unlock your dashboard using FaceID, TouchID, or native Windows Hello without ever typing your plaintext PIN.</p>
+                    <button class="btn-glow" onclick="registerBiometric()" id="triggerNewBiometricBtn" style="width: 100%; justify-content: center; padding: 0.85rem; font-size: 0.95rem;">
                         <i class="ph ph-plus"></i> Register New Device
                     </button>
                 </div>
                 
-                <h3 style="font-size: 1.1rem; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 0.5rem; margin-bottom: 10px;">Registered Devices</h3>
-                <div id="passkeysList" class="settings-list" style="margin-top: 10px; min-height: 80px;">
+                <h3 style="font-size: 1.05rem; font-weight: 600; color: var(--text-high); padding-bottom: 0.75rem; margin-bottom: 0.5rem;">Registered Devices</h3>
+                <div id="passkeysList" style="max-height: 300px; overflow-y: auto; padding-right: 5px;">
                     <div style="text-align:center; padding: 20px; color: var(--text-muted);"><i class="ph ph-spinner ph-spin"></i> Loading...</div>
                 </div>
             </div>

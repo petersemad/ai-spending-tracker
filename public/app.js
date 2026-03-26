@@ -2456,13 +2456,13 @@ function renderCashFlow(transactions) {
 
 // ======= WEBAUTHN DEVICE MANAGEMENT =======
 window.openManagePasskeysModal = () => {
-    document.getElementById('managePasskeysModal').classList.add('active');
+    document.getElementById('managePasskeysModal').style.display = 'flex';
     renderPasskeys();
 };
 
 window.closeManagePasskeysModal = (e) => {
     if (e && e.target !== document.getElementById('managePasskeysModal')) return;
-    document.getElementById('managePasskeysModal').classList.remove('active');
+    document.getElementById('managePasskeysModal').style.display = 'none';
 };
 
 window.renderPasskeys = async () => {
