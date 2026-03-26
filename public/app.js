@@ -390,6 +390,7 @@ function applyFilters() {
     renderStatistics(filtered);
     renderIncome(filtered);
     renderInsights(filtered);
+    renderCashFlow(filtered);
     updateBulkDeleteUI();
     checkBudgetAlerts(filtered);
 }
@@ -2196,3 +2197,141 @@ function checkBudgetAlerts(transactions) {
         }
     });
 }
+
+// ======= CASH FLOW ECHARTS SANKEY LOGIC =======
+let mySankeyChart = null;
+
+function renderCashFlow(transactions) {
+    const chartDom = document.getElementById('cashFlowChart');
+    if (!chartDom) return;
+    
+    if (mySankeyChart) {
+        mySankeyChart.dispose();
+    }
+    
+    if (typeof echarts === 'undefined') {
+        chartDom.innerHTML = '<div class="loading-state"><p>Loading Sankey Diagram Engine...</p></div>';
+        setTimeout(() => renderCashFlow(transactions), 1000);
+        return;
+    }
+    
+    const baseCcy = document.getElementById('baseCurrency')?.value || 'EGP';
+    const baseRateEgp = exchangeRates[baseCcy] || 1.0;
+    
+    let totalIn = 0;
+    let totalOut = 0;
+    let categoriesOut = {};
+    let vendorsOut = {}; 
+    
+    transactions.forEach(tx => {
+        const amt = (parseFloat(tx.amount) || 0) * (exchangeRates[tx.currency || 'EGP'] || 1.0) / baseRateEgp;
+        if (amt <= 0) return;
+        
+        if (tx.type === 'In') {
+            totalIn += amt;
+        } else {
+            totalOut += amt;
+            const cat = tx.category || 'Uncategorized';
+            const vendor = tx.vendor || 'Unknown';
+            
+            categoriesOut[cat] = (categoriesOut[cat] || 0) + amt;
+            
+            if (!vendorsOut[cat]) vendorsOut[cat] = {};
+            vendorsOut[cat][vendor] = (vendorsOut[cat][vendor] || 0) + amt;
+        }
+    });
+    
+    const startNode = totalIn > totalOut ? 'Total Income' : 'Total Budget';
+    const poolAmount = Math.max(totalIn, totalOut); 
+    
+    if (poolAmount === 0 || totalOut === 0) {
+        chartDom.innerHTML = '<div class="loading-state"><i class="ph ph-waves empty-state-icon"></i><p>No expense data available for flow tracking.</p></div>';
+        chartDom.removeAttribute('_echarts_instance_');
+        return;
+    }
+    
+    chartDom.innerHTML = '';
+    mySankeyChart = echarts.init(chartDom);
+    
+    let nodesMap = new Set();
+    nodesMap.add(startNode);
+    
+    let links = [];
+    
+    Object.keys(categoriesOut).forEach(cat => {
+        const catAmt = categoriesOut[cat];
+        if (catAmt > 0) {
+            nodesMap.add(cat);
+            links.push({ source: startNode, target: cat, value: parseFloat(catAmt.toFixed(2)) });
+            
+            Object.keys(vendorsOut[cat]).forEach(vendor => {
+                const vAmt = vendorsOut[cat][vendor];
+                if (vAmt > 0 && (vAmt / catAmt) > 0.01) {
+                    const saneVendor = vendor.substring(0, 15) + (vendor.length > 15 ? '...' : '');
+                    const nodeName = `${saneVendor} (${cat})`; 
+                    nodesMap.add(nodeName);
+                    links.push({ source: cat, target: nodeName, value: parseFloat(vAmt.toFixed(2)) });
+                }
+            });
+        }
+    });
+    
+    if (totalIn > totalOut) {
+        nodesMap.add('Net Saved');
+        links.push({ source: startNode, target: 'Net Saved', value: parseFloat((totalIn - totalOut).toFixed(2)) });
+    }
+    
+    const nodes = Array.from(nodesMap).map(n => ({ name: n }));
+    
+    const option = {
+        tooltip: {
+            trigger: 'item',
+            triggerOn: 'mousemove',
+            backgroundColor: 'rgba(15, 23, 42, 0.95)',
+            borderColor: 'rgba(255,255,255,0.1)',
+            textStyle: { color: '#fff', fontFamily: 'Outfit' },
+            formatter: function (params) {
+                if (params.dataType === 'node') {
+                    return `${params.data.name}: ${formatCcy(params.value, baseCcy)}`;
+                } else {
+                    return `${params.data.source} → ${params.data.target}: ${formatCcy(params.value, baseCcy)}`;
+                }
+            }
+        },
+        series: [
+            {
+                type: 'sankey',
+                data: nodes,
+                links: links,
+                emphasis: { focus: 'adjacency' },
+                nodeAlign: 'justify',
+                right: '4%',
+                left: '4%',
+                top: '4%',
+                bottom: '4%',
+                lineStyle: {
+                    color: 'gradient',
+                    curveness: 0.5,
+                    opacity: 0.2
+                },
+                itemStyle: {
+                    borderWidth: 1,
+                    borderColor: 'rgba(255,255,255,0.1)',
+                    borderRadius: 4
+                },
+                label: {
+                    color: 'rgba(255,255,255,0.8)',
+                    fontFamily: 'Outfit',
+                    fontSize: 11,
+                    fontWeight: 500
+                }
+            }
+        ]
+    };
+    
+    mySankeyChart.setOption(option);
+}
+
+window.addEventListener('resize', () => {
+    if (mySankeyChart) mySankeyChart.resize();
+});

@@ -7,8 +7,10 @@
     <link rel="icon" type="image/png" href="/favicon.png?v=8">
     <link rel="stylesheet" href="style.css?v=3.0">
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Dependencies -->
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://fastly.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
 </head>
@@ -115,6 +117,7 @@
             <button class="tab-btn active" data-tab="transactions"><i class="ph ph-list"></i> Transactions</button>
             <button class="tab-btn" data-tab="subscriptions"><i class="ph ph-calendar-blank"></i> Subscriptions</button>
             <button class="tab-btn" data-tab="categories"><i class="ph ph-chart-pie-slice"></i> Categories</button>
+            <button class="tab-btn" data-tab="flow"><i class="ph ph-waves"></i> Cash Flow</button>
             <button class="tab-btn" data-tab="income"><i class="ph ph-wallet"></i> Income</button>
             <button class="tab-btn" data-tab="statistics"><i class="ph ph-chart-bar"></i> Statistics</button>
             <button class="tab-btn" data-tab="insights"><i class="ph ph-lightning"></i> Insights</button>
@@ -180,6 +183,17 @@
                 </button>
             </div>
             <div id="categoriesList"></div>
+        </main>
+
+        <!-- Cash Flow Sankey Tab -->
+        <main class="glass-panel tab-content" id="tab-flow">
+            <div class="panel-header" style="border-bottom: none; margin-bottom: 0;">
+                <div class="header-left">
+                    <h2><i class="ph ph-waves" style="color: var(--accent-blue); margin-right: 8px;"></i> Cash Flow visualizer</h2>
+                    <p style="font-size: 0.85rem; color: var(--text-med); margin-top: 0.25rem;">Interactive fluid tracking of where your unified income pool diverts.</p>
+                </div>
+            </div>
+            <div id="cashFlowChart" style="width: 100%; height: 600px; min-height: 600px;"></div>
         </main>
 
         <!-- Income Tab -->
