@@ -601,10 +601,10 @@ function renderTransactions(transactions) {
                         </div>
                     </div>
                 </div>
-                <div class="raw-sms" style="width: 100%;">
-                    <i class="ph ph-chat-text" style="vertical-align: middle; margin-right: 4px;"></i>
-                    ${tx.raw_text || 'Raw SMS not available.'}
-                </div>
+                <details class="sms-expand" style="width: 100%;">
+                    <summary><i class="ph ph-chat-text" style="vertical-align: middle; margin-right: 4px;"></i> View Raw SMS Data</summary>
+                    <div style="padding-top: 0.25rem;">${tx.raw_text || 'Raw SMS not available.'}</div>
+                </details>
             </div>
         `;
         
@@ -987,6 +987,14 @@ function renderStatistics(transactions) {
         gradientOut.addColorStop(0, 'rgba(248, 113, 113, 0.4)');
         gradientOut.addColorStop(1, 'rgba(248, 113, 113, 0.0)');
 
+        const gradientInBar = ctx.createLinearGradient(0, 0, 0, 400);
+        gradientInBar.addColorStop(0, 'rgba(52, 211, 153, 0.95)');
+        gradientInBar.addColorStop(1, 'rgba(5, 150, 105, 0.6)');
+        
+        const gradientOutBar = ctx.createLinearGradient(0, 0, 0, 400);
+        gradientOutBar.addColorStop(0, 'rgba(248, 113, 113, 0.95)');
+        gradientOutBar.addColorStop(1, 'rgba(225, 29, 72, 0.6)');
+
         statsChartInstance = new Chart(ctx, {
             type: chartType,
             data: {
@@ -995,32 +1003,38 @@ function renderStatistics(transactions) {
                     {
                         label: 'Money In',
                         data: dataIn,
-                        backgroundColor: isLine ? gradientIn : 'rgba(52, 211, 153, 0.8)',
+                        backgroundColor: isLine ? gradientIn : gradientInBar,
                         borderColor: isLine ? 'rgba(52, 211, 153, 1)' : 'transparent',
-                        borderWidth: isLine ? 3 : 0,
+                        borderWidth: isLine ? 4 : 0,
                         tension: 0.4,
                         fill: isLine,
-                        borderRadius: isLine ? 0 : 6,
-                        pointBackgroundColor: isLine ? '#fff' : 'transparent',
+                        borderRadius: isLine ? 0 : 16,
+                        barPercentage: 0.65,
+                        categoryPercentage: 0.8,
+                        pointBackgroundColor: isLine ? '#101116' : 'transparent',
                         pointBorderColor: isLine ? 'rgba(52, 211, 153, 1)' : 'transparent',
-                        pointBorderWidth: 2,
-                        pointRadius: isLine ? 4 : 0,
-                        pointHoverRadius: isLine ? 6 : 0
+                        pointBorderWidth: 3,
+                        pointRadius: isLine ? 5 : 0,
+                        pointHoverRadius: isLine ? 8 : 0,
+                        hoverBackgroundColor: 'rgba(52, 211, 153, 1)'
                     },
                     {
                         label: 'Money Out',
                         data: dataOut,
-                        backgroundColor: isLine ? gradientOut : 'rgba(248, 113, 113, 0.8)',
+                        backgroundColor: isLine ? gradientOut : gradientOutBar,
                         borderColor: isLine ? 'rgba(248, 113, 113, 1)' : 'transparent',
-                        borderWidth: isLine ? 3 : 0,
+                        borderWidth: isLine ? 4 : 0,
                         tension: 0.4,
                         fill: isLine,
-                        borderRadius: isLine ? 0 : 6,
-                        pointBackgroundColor: isLine ? '#fff' : 'transparent',
+                        borderRadius: isLine ? 0 : 16,
+                        barPercentage: 0.65,
+                        categoryPercentage: 0.8,
+                        pointBackgroundColor: isLine ? '#101116' : 'transparent',
                         pointBorderColor: isLine ? 'rgba(248, 113, 113, 1)' : 'transparent',
-                        pointBorderWidth: 2,
-                        pointRadius: isLine ? 4 : 0,
-                        pointHoverRadius: isLine ? 6 : 0
+                        pointBorderWidth: 3,
+                        pointRadius: isLine ? 5 : 0,
+                        pointHoverRadius: isLine ? 8 : 0,
+                        hoverBackgroundColor: 'rgba(248, 113, 113, 1)'
                     }
                 ]
             },
