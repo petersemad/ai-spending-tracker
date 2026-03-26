@@ -2506,8 +2506,8 @@ window.renderPasskeys = async () => {
                             <div style="font-size: 0.75rem; color: var(--text-muted); font-family: monospace; margin-top: 2px;">ID: ${key.id.substring(0, 12)}...</div>
                         </div>
                     </div>
-                    <button class="ph-btn-outline" style="border-color: rgba(239, 68, 68, 0.3); color: #ef4444; padding: 0.5rem;" onclick="deletePasskey('${key.id}')" title="Revoke Device">
-                        <i class="ph ph-trash"></i>
+                    <button class="revoke-btn" style="background: transparent; border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 8px; color: #ef4444; padding: 0.5rem 0.75rem; cursor: pointer; transition: all 0.2s;" onclick="deletePasskey('${key.id}')" title="Revoke Device" onmouseover="this.style.background='rgba(239, 68, 68, 0.1)'" onmouseout="this.style.background='transparent'">
+                        <i class="ph ph-trash" style="pointer-events: none; font-size: 1.1rem;"></i>
                     </button>
                 </div>
             `;
