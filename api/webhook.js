@@ -97,20 +97,7 @@ export default async function handler(request, response) {
             return response.status(200).json({ success: true, message: "Message intentionally ignored." });
         }
         
-        // Ensure table exists
-        await pool.query(`CREATE TABLE IF NOT EXISTS transactions (
-            id SERIAL PRIMARY KEY,
-            amount DECIMAL(10,2),
-            currency VARCHAR(10) DEFAULT 'EGP',
-            type VARCHAR(50),
-            vendor VARCHAR(255),
-            category VARCHAR(255),
-            raw_text TEXT,
-            date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )`);
-        
-        // Safely add currency column for existing databases
-        await pool.query(`ALTER TABLE transactions ADD COLUMN IF NOT EXISTS currency VARCHAR(10) DEFAULT 'EGP'`);
+
         
         await pool.query(
             `INSERT INTO transactions (amount, currency, type, vendor, category, raw_text) VALUES ($1, $2, $3, $4, $5, $6)`,

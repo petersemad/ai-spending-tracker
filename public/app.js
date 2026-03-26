@@ -67,7 +67,7 @@ window.attemptLogin = async () => {
     btn.innerHTML = '<i class="ph ph-spinner ph-spin"></i> Verifying Session...';
     
     try {
-        const res = await fetch(`/api/transactions?password=${pin}`);
+        const res = await fetch('/api/transactions', { headers: { 'x-admin-pin': pin } });
         if(res.status === 200) {
             sessionStorage.setItem('spendAuth', pin);
             
@@ -283,10 +283,10 @@ async function fetchData() {
             })
             .catch(e => console.warn('Exchange API failed.', e));
 
-        const txResponse = fetch(`/api/transactions?password=${auth}`).then(r => r.json());
-        const rawResponse = fetch(`/api/budgets?password=${auth}`).then(r => r.json().catch(e => ({})));
-        const recResponse = fetch(`/api/recurring?password=${auth}`).then(r => r.json().catch(e => ({})));
-        const incResponse = fetch(`/api/income?password=${auth}`).then(r => r.json().catch(e => ({})));
+        const txResponse = fetch(`/api/transactions`, { headers: { 'x-admin-pin': auth } }).then(r => r.json());
+        const rawResponse = fetch(`/api/budgets`, { headers: { 'x-admin-pin': auth } }).then(r => r.json().catch(e => ({})));
+        const recResponse = fetch(`/api/recurring`, { headers: { 'x-admin-pin': auth } }).then(r => r.json().catch(e => ({})));
+        const incResponse = fetch(`/api/income`, { headers: { 'x-admin-pin': auth } }).then(r => r.json().catch(e => ({})));
         
         const [data, budgetData, recurringData, incomeData] = await Promise.all([txResponse, rawResponse, recResponse, incResponse]);
         
@@ -654,8 +654,8 @@ window.bulkDeleteTransactions = async () => {
     try {
         const res = await fetch('/api/bulk-delete', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ ids: Array.from(selectedTxIds).map(Number), password: auth })
+            headers: { 'Content-Type': 'application/json', 'x-admin-pin': sessionStorage.getItem('spendAuth') },
+            body: JSON.stringify({ ids: Array.from(selectedTxIds).map(Number),  })
         });
         
         if (res.ok) {
@@ -1138,8 +1138,8 @@ window.saveSubscription = async () => {
     try {
         const response = await fetch('/api/recurring', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ vendor, amount: parseFloat(amount) || 0, category, currency, password })
+            headers: { 'Content-Type': 'application/json', 'x-admin-pin': sessionStorage.getItem('spendAuth') },
+            body: JSON.stringify({ vendor, amount: parseFloat(amount) || 0, category, currency })
         });
         const result = await response.json();
         if (result.success) {
@@ -1176,8 +1176,8 @@ window.toggleRecurring = async (vendor, forceAdd = false, forceDelete = false) =
     try {
         const response = await fetch('/api/recurring', {
             method,
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ vendor, password })
+            headers: { 'Content-Type': 'application/json', 'x-admin-pin': sessionStorage.getItem('spendAuth') },
+            body: JSON.stringify({ vendor })
         });
         const result = await response.json();
         if (result.success) {
@@ -1219,8 +1219,8 @@ window.deleteTransaction = async (id) => {
         try {
             const response = await fetch('/api/delete', {
                 method: 'DELETE',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ id, password })
+                headers: { 'Content-Type': 'application/json', 'x-admin-pin': sessionStorage.getItem('spendAuth') },
+                body: JSON.stringify({ id })
             });
             const result = await response.json();
             if (!result.success) {
@@ -1398,7 +1398,7 @@ window.submitEdit = async (id) => {
     }
 
     const payload = {
-        amount, currency, type, vendor, category: finalCategory, password
+        amount, currency, type, vendor, category: finalCategory
     };
     if (dateStr) {
         payload.date = new Date(dateStr).toISOString();
@@ -1411,7 +1411,7 @@ window.submitEdit = async (id) => {
     try {
         const response = await fetch(url, {
             method,
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', 'x-admin-pin': sessionStorage.getItem('spendAuth') },
             body: JSON.stringify(payload)
         });
         
@@ -1472,8 +1472,8 @@ window.saveBudget = async (category) => {
     try {
         const res = await fetch('/api/budgets', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ category, amount: limit || 0, currency, password })
+            headers: { 'Content-Type': 'application/json', 'x-admin-pin': sessionStorage.getItem('spendAuth') },
+            body: JSON.stringify({ category, amount: limit || 0, currency })
         });
         const data = await res.json();
         if (data.success) {
@@ -1523,8 +1523,8 @@ async function handleChatSubmit() {
     try {
         const response = await fetch('/api/chat', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ query: query, password: auth })
+            headers: { 'Content-Type': 'application/json', 'x-admin-pin': sessionStorage.getItem('spendAuth') },
+            body: JSON.stringify({ query: query,  })
         });
         const data = await response.json();
         
@@ -1710,8 +1710,8 @@ window.saveIncomeSource = async () => {
     try {
         const response = await fetch('/api/income', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ source_name, amount: parseFloat(amount) || 0, currency, password })
+            headers: { 'Content-Type': 'application/json', 'x-admin-pin': sessionStorage.getItem('spendAuth') },
+            body: JSON.stringify({ source_name, amount: parseFloat(amount) || 0, currency })
         });
         const result = await response.json();
         if (result.success) {
@@ -1732,8 +1732,8 @@ window.deleteIncomeSource = async (source_name) => {
     try {
         const response = await fetch('/api/income', {
             method: 'DELETE',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ source_name, password })
+            headers: { 'Content-Type': 'application/json', 'x-admin-pin': sessionStorage.getItem('spendAuth') },
+            body: JSON.stringify({ source_name })
         });
         const result = await response.json();
         if (result.success) {

@@ -1,31 +1,16 @@
-import { pool } from './db.js';
+import { pool, requireAuth } from './db.js';
 
 export default async function handler(request, response) {
+    if (!requireAuth(request, response)) return;
+
     try {
-
-
-        await pool.query(`CREATE TABLE IF NOT EXISTS income_sources (
-            id SERIAL PRIMARY KEY,
-            source_name VARCHAR(255) UNIQUE,
-            amount DECIMAL(10,2),
-            currency VARCHAR(10) DEFAULT 'EGP'
-        )`);
-
         if (request.method === 'GET') {
-            const expectedPin = process.env.ADMIN_PASSWORD;
-            if (request.query.password !== expectedPin) return response.status(401).json({ error: 'Unauthorized PIN' });
             const result = await pool.query(`SELECT * FROM income_sources ORDER BY id ASC`);
             return response.status(200).json({ income_sources: result.rows });
         }
         
-        const expectedPin = process.env.ADMIN_PASSWORD;
-        
         if (request.method === 'POST') {
-            const { source_name, amount, currency, password } = request.body;
-            
-            if (password !== expectedPin) {
-                return response.status(401).json({ success: false, error: 'Unauthorized: Incorrect PIN' });
-            }
+            const { source_name, amount, currency } = request.body;
 
             if (!source_name || amount === undefined) {
                 return response.status(400).json({ success: false, error: 'Missing source_name or amount' });
@@ -42,11 +27,7 @@ export default async function handler(request, response) {
         }
 
         if (request.method === 'DELETE') {
-            const { source_name, password } = request.body;
-            
-            if (password !== expectedPin) {
-                return response.status(401).json({ success: false, error: 'Unauthorized: Incorrect PIN' });
-            }
+            const { source_name } = request.body;
 
             if (!source_name) {
                 return response.status(400).json({ success: false, error: 'Missing source_name' });

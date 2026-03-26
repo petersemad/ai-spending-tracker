@@ -1,28 +1,19 @@
-import { pool } from './db.js';
+import { pool, requireAuth } from './db.js';
 
 export default async function handler(request, response) {
     if (request.method !== 'PATCH') {
         return response.status(405).json({ error: 'Method Not Allowed' });
     }
 
-    const { id, password, ...fieldsToUpdate } = request.body;
-    
-    const adminPass = process.env.ADMIN_PASSWORD;
+    if (!requireAuth(request, response)) return;
 
-    if (password !== adminPass) {
-        return response.status(401).json({ error: 'Unauthorized: Incorrect PIN' });
-    }
+    const { id, ...fieldsToUpdate } = request.body;
 
     if (!id || Object.keys(fieldsToUpdate).length === 0) {
         return response.status(400).json({ error: 'id and at least one field to update are required' });
     }
 
     try {
-
-
-        // Auto-migrate column just in case it hits here first
-        await pool.query(`ALTER TABLE transactions ADD COLUMN IF NOT EXISTS currency VARCHAR(10) DEFAULT 'EGP'`);
-
         // Build dynamic SET clause
         const setClauses = [];
         const values = [];
