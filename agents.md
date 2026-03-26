@@ -64,31 +64,33 @@ ai-spending-tracker/
 - **Response**: `{ "success": true, "data": { amount, type, vendor, category } }`
 
 ### `GET /api/transactions`
-- **Purpose**: Returns all rows from the `transactions` table ordered by `id DESC`. Requires admin PIN query.
-- **Request**: `?password=<PIN>`
+- **Purpose**: Returns all rows from the `transactions` table ordered by `id DESC`.
+- **Auth**: Requires `x-admin-pin` HTTP Header.
 - **Response**: `{ "transactions": [...] }`
 
 ### `DELETE /api/delete`
-- **Purpose**: Deletes a transaction by ID. Requires admin PIN.
-- **Request Body**: `{ "id": <number>, "password": "<PIN>" }`
-- **Default PIN**: `1234` (configurable via `ADMIN_PASSWORD` env var)
+- **Purpose**: Deletes a transaction by ID.
+- **Auth**: Requires `x-admin-pin` HTTP Header.
+- **Request Body**: `{ "id": <number> }`
 
 ### `PATCH /api/update`
-- **Purpose**: Updates any field of a transaction (amount, currency, type, vendor, category, date). Requires admin PIN.
-- **Request Body**: `{ "id": <number>, "amount": <number>, "currency": "USD", "password": "<PIN>", ... }`
+- **Purpose**: Updates any field of a transaction (amount, currency, type, vendor, category, date).
+- **Auth**: Requires `x-admin-pin` HTTP Header.
+- **Request Body**: `{ "id": <number>, "amount": <number>, "currency": "USD", ... }`
 
 ### `POST /api/add`
-- **Purpose**: Manually adds a new transaction from the dashboard. Requires admin PIN.
-- **Request Body**: `{ "amount": <number>, "currency": "EGP", "type": "Out", "vendor": "Name", "category": "Cat", "password": "<PIN>" }`
+- **Purpose**: Manually adds a new transaction from the dashboard.
+- **Auth**: Requires `x-admin-pin` HTTP Header.
+- **Request Body**: `{ "amount": <number>, "currency": "EGP", "type": "Out", "vendor": "Name", "category": "Cat" }`
 
 ### `POST /api/chat`
 - **Purpose**: Feeds parsed DB arrays natively to OpenAI dynamically driving the Conversational Assistant.
 
 ### `GET / POST / DELETE /api/recurring`
-- **Purpose**: Maps and overwrites explicit Subscription objects in the `recurring_vendors` tracking table. All methods mandate Admin PIN.
+- **Purpose**: Maps and overwrites explicit Subscription objects in the `recurring_vendors` tracking table. All methods mandate `x-admin-pin` HTTP Header.
 
 ### `GET / POST / DELETE /api/budgets`
-- **Purpose**: Stores category-specific monetary ceilings directly to the `budgets` schema overriding logic blocks. All methods mandate Admin PIN.
+- **Purpose**: Stores category-specific monetary ceilings directly to the `budgets` schema overriding logic blocks. All methods mandate `x-admin-pin` HTTP Header.
 
 ## Database Schema
 
@@ -117,6 +119,8 @@ CREATE TABLE IF NOT EXISTS recurring_vendors (
     currency VARCHAR(10) DEFAULT 'EGP'
 );
 ```
+
+*Note: All schemas are automatically generated via the centralized `initSchema()` lifecycle strictly located in `api/db.js` upon Vercel Serverless cold starts, removing redundant SQL setups from endpoint evaluations.*
 
 ## Environment Variables
 
