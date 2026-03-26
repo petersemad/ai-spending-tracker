@@ -12,6 +12,32 @@ let txCurrentPage = 1;
 let searchQuery = '';
 let pendingDeleteTimer = null;
 
+// ======= CUSTOM CONFIRM DIALOG =======
+window.customConfirm = (msg) => {
+    return new Promise((resolve) => {
+        const overlay = document.createElement('div');
+        overlay.style.cssText = "position:fixed; inset:0; z-index:99999; display:flex; align-items:center; justify-content:center; background:rgba(0,0,0,0.75); backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px);";
+        
+        const box = document.createElement('div');
+        box.style.cssText = "background:rgba(20,20,30,0.95); border:1px solid rgba(255,255,255,0.1); border-radius:18px; padding:2rem; width:85%; max-width:380px; text-align:center; box-shadow:0 24px 64px rgba(0,0,0,0.8); color:#fff; animation:modalScaleIn 0.35s cubic-bezier(0.16,1,0.3,1);";
+        
+        box.innerHTML = `
+            <div style="font-size:3rem; margin-bottom:1rem; color:#f87171;"><i class="ph ph-warning-circle"></i></div>
+            <p style="font-size:1.1rem; line-height:1.5; margin-bottom:2rem; color:rgba(255,255,255,0.9); font-weight:500;">${msg}</p>
+            <div style="display:flex; gap:0.75rem; justify-content:center;">
+                <button id="ccCancel" class="btn-glow" style="flex:1; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); color:rgba(255,255,255,0.7); padding:0.8rem; justify-content:center;">Cancel</button>
+                <button id="ccConfirm" class="btn-glow" style="flex:1; background:rgba(239,68,68,0.15); border:1px solid rgba(239,68,68,0.4); color:#f87171; padding:0.8rem; justify-content:center; box-shadow:0 0 20px rgba(239,68,68,0.2);">Yes, Proceed</button>
+            </div>
+        `;
+        
+        overlay.appendChild(box);
+        document.body.appendChild(overlay);
+        
+        document.getElementById('ccCancel').onclick = () => { overlay.remove(); resolve(false); };
+        document.getElementById('ccConfirm').onclick = () => { overlay.remove(); resolve(true); };
+    });
+};
+
 // ======= TOAST SYSTEM =======
 function showToast(message, type = 'info', duration = 3500, options = {}) {
     const container = document.getElementById('toastContainer');
@@ -405,10 +431,10 @@ async function fetchData() {
             })
             .catch(e => console.warn('Exchange API failed.', e));
 
-        const txResponse = fetch(`/api/transactions`, { headers: { 'x-admin-pin': auth } }).then(r => r.json());
-        const rawResponse = fetch(`/api/budgets`, { headers: { 'x-admin-pin': auth } }).then(r => r.json().catch(e => ({})));
-        const recResponse = fetch(`/api/recurring`, { headers: { 'x-admin-pin': auth } }).then(r => r.json().catch(e => ({})));
-        const incResponse = fetch(`/api/income`, { headers: { 'x-admin-pin': auth } }).then(r => r.json().catch(e => ({})));
+        const txResponse = fetch(`/api/transactions?_=${Date.now()}`, { headers: { 'x-admin-pin': auth } }).then(r => r.json());
+        const rawResponse = fetch(`/api/budgets?_=${Date.now()}`, { headers: { 'x-admin-pin': auth } }).then(r => r.json().catch(e => ({})));
+        const recResponse = fetch(`/api/recurring?_=${Date.now()}`, { headers: { 'x-admin-pin': auth } }).then(r => r.json().catch(e => ({})));
+        const incResponse = fetch(`/api/income?_=${Date.now()}`, { headers: { 'x-admin-pin': auth } }).then(r => r.json().catch(e => ({})));
         
         const [data, budgetData, recurringData, incomeData] = await Promise.all([txResponse, rawResponse, recResponse, incResponse]);
         
@@ -765,7 +791,7 @@ window.toggleTxSelection = (id) => {
 
 window.bulkDeleteTransactions = async () => {
     if(selectedTxIds.size === 0) return;
-    if(!confirm(`Are you sure you want to delete ${selectedTxIds.size} transaction(s)?`)) return;
+    if(!(await customConfirm(`Are you sure you want to delete ${selectedTxIds.size} transaction(s)?`))) return;
     
     const auth = sessionStorage.getItem('spendAuth');
     if(!auth) return;
@@ -1307,7 +1333,7 @@ window.toggleRecurring = async (vendor, forceAdd = false, forceDelete = false) =
     const method = (isCurrentlyRecurring && !forceAdd) || forceDelete ? 'DELETE' : 'POST';
     const action = method === 'POST' ? 'add' : 'remove';
 
-    if (!confirm(`Are you sure you want to ${action} explicit subscription tracking for "${vendor}"?`)) return;
+    if (!(await customConfirm(`Are you sure you want to ${action} explicit subscription tracking for "${vendor}"?`))) return;
     const password = sessionStorage.getItem('spendAuth');
 
     try {
@@ -1328,7 +1354,7 @@ window.toggleRecurring = async (vendor, forceAdd = false, forceDelete = false) =
 };
 
 window.deleteTransaction = async (id) => {
-    if (!confirm("Are you sure you want to delete this transaction?")) return;
+    if (!(await customConfirm("Are you sure you want to delete this transaction?"))) return;
     const password = sessionStorage.getItem('spendAuth');
     const txBackup = allTransactions.find(tx => tx.id === id);
     
@@ -1879,7 +1905,7 @@ window.saveIncomeSource = async () => {
 };
 
 window.deleteIncomeSource = async (source_name) => {
-    if(!confirm("Are you sure you want to remove this Income Source?")) return;
+    if(!(await customConfirm("Are you sure you want to remove this Income Source?"))) return;
     const password = sessionStorage.getItem('spendAuth');
     
     try {
@@ -2521,7 +2547,7 @@ window.renderPasskeys = async () => {
 };
 
 window.deletePasskey = async (id) => {
-    if (!confirm('Are you absolutely sure you want to mathematically unbind and destroy this hardware key? You will immediately lose Fast-Auth access from this particular device.')) return;
+    if (!(await customConfirm('Are you absolutely sure you want to mathematically unbind and destroy this hardware key? You will immediately lose Fast-Auth access from this particular device.'))) return;
     
     try {
         const pin = sessionStorage.getItem('spendAuth');
