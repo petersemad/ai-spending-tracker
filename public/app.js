@@ -267,6 +267,11 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
         // Add skeleton loading
         target.classList.add('tab-loading');
         setTimeout(() => target.classList.remove('tab-loading'), 350);
+        
+        // Force ECharts to recalculate layout boundary once display:block resolves
+        if (btn.dataset.tab === 'flow' && typeof mySankeyChart !== 'undefined' && mySankeyChart) {
+            setTimeout(() => mySankeyChart.resize(), 50);
+        }
     });
 });
 
