@@ -7,7 +7,7 @@ export default async function handler(req, res) {
     const { action } = req.body;
     
     // Auth Check for Registration actions
-    if (action === 'generate-reg' || action === 'verify-reg') {
+    if (['generate-reg', 'verify-reg', 'list-passkeys', 'delete-passkey'].includes(action)) {
         if (!requireAuth(req, res)) return;
     }
 
@@ -110,6 +110,18 @@ export default async function handler(req, res) {
                 return res.status(200).json({ success: true, pin: process.env.ADMIN_PASSWORD });
             }
             return res.status(400).json({ error: 'Biometric verification failed.' });
+        }
+
+        if (action === 'list-passkeys') {
+            const result = await pool.query('SELECT id, counter, transports FROM passkeys');
+            return res.status(200).json({ success: true, passkeys: result.rows });
+        }
+
+        if (action === 'delete-passkey') {
+            const { id } = req.body;
+            if (!id) return res.status(400).json({ error: 'Missing Passkey ID targeting block.' });
+            await pool.query('DELETE FROM passkeys WHERE id = $1', [id]);
+            return res.status(200).json({ success: true });
         }
 
         return res.status(400).json({ error: 'Unknown action parameter.' });

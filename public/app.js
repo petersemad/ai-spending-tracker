@@ -141,6 +141,7 @@ window.registerBiometric = async () => {
         if (verifyData.success) {
             localStorage.setItem('biometric_enabled', 'true');
             showToast('FaceID/TouchID strictly bound to your device!', 'success', 5000);
+            if (typeof renderPasskeys === 'function') renderPasskeys();
         } else {
             throw new Error(verifyData.error || 'Cryptographic verification isolated check failed');
         }
@@ -2452,6 +2453,94 @@ function renderCashFlow(transactions) {
     
     mySankeyChart.setOption(option);
 }
+
+// ======= WEBAUTHN DEVICE MANAGEMENT =======
+window.openManagePasskeysModal = () => {
+    document.getElementById('managePasskeysModal').classList.add('active');
+    renderPasskeys();
+};
+
+window.closeManagePasskeysModal = (e) => {
+    if (e && e.target !== document.getElementById('managePasskeysModal')) return;
+    document.getElementById('managePasskeysModal').classList.remove('active');
+};
+
+window.renderPasskeys = async () => {
+    const list = document.getElementById('passkeysList');
+    list.innerHTML = '<div style="text-align:center; padding: 20px; color: var(--text-muted);"><i class="ph ph-spinner ph-spin"></i> Loading secure keys...</div>';
+    
+    try {
+        const pin = sessionStorage.getItem('spendAuth');
+        const resp = await fetch('/api/auth', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'x-admin-pin': pin },
+            body: JSON.stringify({ action: 'list-passkeys' })
+        });
+        const data = await resp.json();
+        
+        if (!data.success) throw new Error(data.error || 'Failed to fetch hardware keys');
+        
+        if (!data.passkeys || data.passkeys.length === 0) {
+            list.innerHTML = '<div style="text-align:center; padding: 20px; color: var(--text-muted);">No hardware devices mathematically mapped yet.</div>';
+            localStorage.removeItem('biometric_enabled'); // Automatically clear lockscreen if no keys exist
+            return;
+        }
+        
+        let html = '';
+        data.passkeys.forEach(key => {
+            const transports = JSON.parse(key.transports || '[]');
+            let icon = 'ph-fingerprint';
+            let label = 'Hardware Key';
+            if (transports.includes('internal')) { icon = 'ph-device-mobile'; label = 'Device Context (FaceID/TouchID)'; }
+            else if (transports.includes('usb')) { icon = 'ph-usb'; label = 'USB Security Key'; }
+            else if (transports.includes('hybrid')) { icon = 'ph-qr-code'; label = 'Cross-Device Key'; }
+            
+            html += `
+                <div class="settings-item" style="display:flex; justify-content: space-between; align-items: center; padding: 12px; background: rgba(255,255,255,0.02); border-radius: 8px; margin-bottom: 8px; border: 1px solid rgba(255,255,255,0.05);">
+                    <div style="display:flex; align-items: center; gap: 12px;">
+                        <div style="width: 40px; height: 40px; border-radius: 50%; background: rgba(167, 139, 250, 0.1); display:flex; align-items:center; justify-content:center; color: var(--accent-purple);">
+                            <i class="ph ${icon}" style="font-size: 1.2rem;"></i>
+                        </div>
+                        <div>
+                            <div style="font-weight: 500; font-size: 0.95rem;">${label}</div>
+                            <div style="font-size: 0.75rem; color: var(--text-muted); font-family: monospace; margin-top: 2px;">ID: ${key.id.substring(0, 12)}...</div>
+                        </div>
+                    </div>
+                    <button class="ph-btn-outline" style="border-color: rgba(239, 68, 68, 0.3); color: #ef4444; padding: 0.5rem;" onclick="deletePasskey('${key.id}')" title="Revoke Device">
+                        <i class="ph ph-trash"></i>
+                    </button>
+                </div>
+            `;
+        });
+        list.innerHTML = html;
+        
+    } catch (err) {
+        console.error(err);
+        list.innerHTML = `<div style="text-align:center; padding: 20px; color: #ef4444;"><i class="ph ph-warning"></i> ${err.message || 'Error loading arrays'}</div>`;
+    }
+};
+
+window.deletePasskey = async (id) => {
+    if (!confirm('Are you absolutely sure you want to mathematically unbind and destroy this hardware key? You will immediately lose Fast-Auth access from this particular device.')) return;
+    
+    try {
+        const pin = sessionStorage.getItem('spendAuth');
+        const resp = await fetch('/api/auth', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'x-admin-pin': pin },
+            body: JSON.stringify({ action: 'delete-passkey', id })
+        });
+        const data = await resp.json();
+        
+        if (!data.success) throw new Error(data.error || 'Failed to destroy Passkey');
+        
+        showToast('Device mathematically unlinked!', 'success');
+        renderPasskeys();
+    } catch (err) {
+        console.error(err);
+        showToast(err.message, 'error');
+    }
+};
 
 window.addEventListener('resize', () => {
     if (mySankeyChart) mySankeyChart.resize();

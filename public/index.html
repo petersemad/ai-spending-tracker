@@ -35,8 +35,8 @@
                 <p>Syncing via Android SMS <i class="ph-fill ph-check-circle"></i></p>
             </div>
             <div class="header-right" style="display: flex; gap: 0.5rem; align-items: center;">
-                <button id="enableBiometricsBtn" class="btn-glow" onclick="registerBiometric()" style="border-color: rgba(167, 139, 250, 0.4); color: var(--accent-purple);">
-                    <i class="ph ph-fingerprint"></i> Setup FaceID
+                <button id="enableBiometricsBtn" class="btn-glow" onclick="openManagePasskeysModal()" style="border-color: rgba(167, 139, 250, 0.4); color: var(--accent-purple);">
+                    <i class="ph ph-fingerprint"></i> Manage FaceID
                 </button>
                 <button id="themeToggle" class="theme-toggle" title="Toggle Light/Dark Mode">
                     <i class="ph ph-sun"></i>
@@ -291,6 +291,28 @@
             </div>
         </main>
         </div> <!-- End appWrapper -->
+
+        <!-- Manage Passkeys Modal -->
+        <div class="modal-overlay" id="managePasskeysModal" onclick="closeManagePasskeysModal(event)">
+            <div class="modal custom-scrollbar">
+                <div class="modal-header">
+                    <h2><i class="ph ph-fingerprint"></i> Hardware Security</h2>
+                    <button class="close-btn" onclick="closeManagePasskeysModal()"><i class="ph ph-x"></i></button>
+                </div>
+                <div style="margin-bottom: 20px;">
+                    <p style="color: var(--text-med); font-size: 0.9em; margin-bottom: 15px;">Biometric passkeys allow you to instantly unlock your dashboard using FaceID, TouchID, or native Windows Hello without ever typing your plaintext PIN.</p>
+                    <button class="btn-glow" onclick="registerBiometric()" id="triggerNewBiometricBtn" style="width: 100%; justify-content: center; padding: 0.8rem;">
+                        <i class="ph ph-plus"></i> Register New Device
+                    </button>
+                </div>
+                
+                <h3 style="font-size: 1.1rem; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 0.5rem; margin-bottom: 10px;">Registered Devices</h3>
+                <div id="passkeysList" class="settings-list" style="margin-top: 10px; min-height: 80px;">
+                    <div style="text-align:center; padding: 20px; color: var(--text-muted);"><i class="ph ph-spinner ph-spin"></i> Loading...</div>
+                </div>
+            </div>
+        </div>
+
     </div>
     <div id="toastContainer"></div>
 
