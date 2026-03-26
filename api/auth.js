@@ -11,9 +11,9 @@ export default async function handler(req, res) {
         if (!requireAuth(req, res)) return;
     }
 
-    const rawHost = process.env.VERCEL_URL || req.headers.host || 'localhost:3000';
-    const rpID = rawHost.includes('localhost') ? 'localhost' : rawHost.replace('https://', '').split(':')[0];
-    const origin = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000';
+    const host = req.headers['x-forwarded-host'] || req.headers.host || 'localhost:3000';
+    const rpID = host.split(':')[0];
+    const origin = req.headers.origin || (rpID === 'localhost' ? 'http://localhost:3000' : `https://${rpID}`);
 
     try {
         if (action === 'generate-reg') {
