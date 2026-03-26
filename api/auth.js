@@ -49,16 +49,19 @@ export default async function handler(req, res) {
             });
 
             if (verification.verified && verification.registrationInfo) {
-                const { credential, credentialDeviceType } = verification.registrationInfo;
-                const { id, publicKey, counter, transports } = credential;
+                const info = verification.registrationInfo;
+                const publicKey = info.credential ? info.credential.publicKey : info.credentialPublicKey;
+                const rawId = info.credential ? info.credential.id : info.credentialID;
+                const counter = info.credential ? info.credential.counter : info.counter;
+                const transports = info.credential ? info.credential.transports : [];
                 
                 const pubKeyBuffer = Buffer.from(publicKey);
-                const credentialIDString = id;
+                const credentialIDString = typeof rawId === 'string' ? rawId : Buffer.from(rawId).toString('base64url');
 
                 await pool.query(
                     `INSERT INTO passkeys (id, public_key, counter, transports) VALUES ($1, $2, $3, $4)
                      ON CONFLICT (id) DO UPDATE SET public_key = EXCLUDED.public_key, counter = EXCLUDED.counter`, 
-                    [credentialIDString, pubKeyBuffer, counter, JSON.stringify(credential.response.transports || [])]
+                    [credentialIDString, pubKeyBuffer, counter, JSON.stringify(transports || [])]
                 );
                 return res.status(200).json({ success: true });
             }
@@ -83,21 +86,27 @@ export default async function handler(req, res) {
             if (dbCredRes.rows.length === 0) return res.status(400).json({ error: 'Authenticator is not registered with this account.' });
             
             const authenticator = dbCredRes.rows[0];
+            const credConfig = {
+                id: credential.id,
+                credentialID: Buffer.from(credential.id, 'base64url'), // v9 legacy mapping
+                publicKey: authenticator.public_key,
+                credentialPublicKey: authenticator.public_key, // v9 legacy mapping
+                counter: Number(authenticator.counter),
+                transports: JSON.parse(authenticator.transports || '[]')
+            };
+
             const verification = await verifyAuthenticationResponse({
                 response: credential,
                 expectedChallenge: challengeRes.rows[0].challenge,
                 expectedOrigin: origin,
                 expectedRPID: rpID,
-                credential: {
-                    id: credential.id,
-                    publicKey: authenticator.public_key,
-                    counter: Number(authenticator.counter),
-                    transports: JSON.parse(authenticator.transports || '[]')
-                }
+                credential: credConfig,        // v13 compliance
+                authenticator: credConfig      // v9 compliance fallback
             });
 
             if (verification.verified) {
-                await pool.query(`UPDATE passkeys SET counter = $1 WHERE id = $2`, [verification.authenticationInfo.newCounter, credential.id]);
+                const newCounter = verification.authenticationInfo.newCounter;
+                await pool.query(`UPDATE passkeys SET counter = $1 WHERE id = $2`, [newCounter, credential.id]);
                 return res.status(200).json({ success: true, pin: process.env.ADMIN_PASSWORD });
             }
             return res.status(400).json({ error: 'Biometric verification failed.' });
