@@ -4,13 +4,7 @@ const openai = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY
 });
 
-// Dynamically pick whatever url the Neon Vercel Integration gave us
-const connectionString = process.env.storage_POSTGRES_URL || process.env.DATABASE_URL || process.env.POSTGRES_URL || process.env.NEON_DATABASE_URL;
 
-const pool = new Pool({
-    connectionString: connectionString,
-    ssl: { rejectUnauthorized: false }
-});
 
 const SYSTEM_PROMPT = `
 You are a financial assistant parsing CIB bank SMS messages.
