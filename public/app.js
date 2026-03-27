@@ -16,17 +16,19 @@ let pendingDeleteTimer = null;
 window.customConfirm = (msg) => {
     return new Promise((resolve) => {
         const overlay = document.createElement('div');
-        overlay.style.cssText = "position:fixed; inset:0; z-index:99999; display:flex; align-items:center; justify-content:center; background:rgba(0,0,0,0.75); backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px);";
+        overlay.className = 'modal-overlay';
+        overlay.style.cssText = "z-index:99999; display:flex; align-items:center; justify-content:center; background:rgba(0,0,0,0.75); backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px);";
         
         const box = document.createElement('div');
-        box.style.cssText = "background:rgba(20,20,30,0.95); border:1px solid rgba(255,255,255,0.1); border-radius:18px; padding:2rem; width:85%; max-width:380px; text-align:center; box-shadow:0 24px 64px rgba(0,0,0,0.8); color:#fff; animation:modalScaleIn 0.35s cubic-bezier(0.16,1,0.3,1);";
+        box.className = 'modal-box';
+        box.style.cssText = "padding:2.5rem 2rem; width:85%; max-width:400px; text-align:center;";
         
         box.innerHTML = `
-            <div style="font-size:3rem; margin-bottom:1rem; color:#f87171;"><i class="ph ph-warning-circle"></i></div>
-            <p style="font-size:1.1rem; line-height:1.5; margin-bottom:2rem; color:rgba(255,255,255,0.9); font-weight:500;">${msg}</p>
+            <div style="font-size:3.5rem; margin-bottom:1rem; color:var(--money-out);"><i class="ph ph-warning-circle"></i></div>
+            <p style="font-size:1.15rem; line-height:1.5; margin-bottom:2.5rem; color:var(--text-high); font-weight:500;">${msg}</p>
             <div style="display:flex; gap:0.75rem; justify-content:center;">
-                <button id="ccCancel" class="btn-glow" style="flex:1; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); color:rgba(255,255,255,0.7); padding:0.8rem; justify-content:center;">Cancel</button>
-                <button id="ccConfirm" class="btn-glow" style="flex:1; background:rgba(239,68,68,0.15); border:1px solid rgba(239,68,68,0.4); color:#f87171; padding:0.8rem; justify-content:center; box-shadow:0 0 20px rgba(239,68,68,0.2);">Yes, Proceed</button>
+                <button id="ccCancel" class="modal-btn cancel" style="flex:1;">Cancel</button>
+                <button id="ccConfirm" class="modal-btn confirm" style="flex:1; background:var(--money-out); border-color:var(--money-out);">Yes, Proceed</button>
             </div>
         `;
         
@@ -2041,8 +2043,8 @@ window.openIconPicker = (safeID) => {
     modal.style.zIndex = '10000';
     modal.innerHTML = `
         <div class="modal-overlay" style="background:rgba(0,0,0,0.8); backdrop-filter:blur(10px);" onclick="this.parentElement.remove()">
-            <div class="modal-box" onclick="event.stopPropagation()" style="max-width: 380px; padding: 1.5rem; background:#111; border:1px solid rgba(255,255,255,0.1);">
-                <div style="display:flex; justify-content:space-between; align-items:center;">
+            <div class="modal-box" onclick="event.stopPropagation()" style="max-width: 380px; padding: 1.5rem;">
+                <div style="display:flex; justify-content:space-between; align-items:center; color:var(--text-high);">
                     <h3 style="margin:0;">Pick an Icon</h3>
                     <button class="action-btn" style="width:32px; height:32px; padding:0; display:flex; align-items:center; justify-content:center; border-radius:8px;" onclick="document.getElementById('iconPickerModal').remove()"><i class="ph ph-x"></i></button>
                 </div>
@@ -2088,8 +2090,8 @@ window.openColorPicker = (safeID) => {
     modal.style.zIndex = '10000';
     modal.innerHTML = `
         <div class="modal-overlay" style="background:rgba(0,0,0,0.8); backdrop-filter:blur(10px);" onclick="this.parentElement.remove()">
-            <div class="modal-box" onclick="event.stopPropagation()" style="width: 100%; max-width: 320px; max-height: 80vh; overflow-y:auto; padding: 1.5rem; background:#111; border:1px solid rgba(255,255,255,0.1);">
-                <div style="display:flex; justify-content:space-between; align-items:center; position:sticky; top:-1.5rem; background:rgba(17,17,17,0.95); backdrop-filter:blur(10px); padding-top:1.5rem; padding-bottom:1rem; z-index:10; margin-top:-1.5rem;">
+            <div class="modal-box" onclick="event.stopPropagation()" style="width: 100%; max-width: 320px; max-height: 80vh; overflow-y:auto; padding: 1.5rem; position:relative;">
+                <div style="display:flex; justify-content:space-between; align-items:center; position:sticky; top:-1.5rem; background:var(--glass-surface); backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px); border-bottom:1px solid var(--glass-border); padding-top:1.5rem; padding-bottom:1rem; z-index:10; margin-top:-1.5rem; color:var(--text-high);">
                     <h3 style="margin:0;">Pick a Color</h3>
                     <button class="action-btn" style="width:32px; height:32px; padding:0; display:flex; align-items:center; justify-content:center; border-radius:8px;" onclick="document.getElementById('colorPickerModal').remove()"><i class="ph ph-x"></i></button>
                 </div>

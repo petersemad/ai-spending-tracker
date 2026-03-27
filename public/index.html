@@ -293,11 +293,11 @@
         </div> <!-- End appWrapper -->
 
         <!-- Manage Passkeys Modal -->
-        <div id="managePasskeysModal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.75); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); z-index: 9999; align-items: center; justify-content: center;" onclick="closeManagePasskeysModal(event)">
-            <div style="background: rgba(14, 15, 23, 0.85); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 20px; padding: 2rem; width: 90%; max-width: 420px; position: relative; box-shadow: 0 24px 64px rgba(0,0,0,0.8); color: white;">
-                <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 1rem; margin-bottom: 1.5rem;">
-                    <h2 style="font-size: 1.35rem; font-weight: 600; margin: 0; display: flex; align-items: center; gap: 0.5rem;"><i class="ph ph-fingerprint" style="color: var(--accent-purple);"></i> Hardware Security</h2>
-                    <button style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 50%; color: var(--text-med); cursor: pointer; font-size: 1.2rem; padding: 0.4rem; display: flex; align-items: center; justify-content: center; transition: all 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.1)'" onmouseout="this.style.background='rgba(255,255,255,0.05)'" onclick="closeManagePasskeysModal()"><i class="ph ph-x"></i></button>
+        <div id="managePasskeysModal" class="modal-overlay" style="display: none;" onclick="closeManagePasskeysModal(event)">
+            <div class="modal-box" style="padding: 2rem; width: 90%; max-width: 420px; position: relative;">
+                <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--glass-border); padding-bottom: 1rem; margin-bottom: 1.5rem;">
+                    <h2 style="font-size: 1.35rem; font-weight: 600; margin: 0; display: flex; align-items: center; gap: 0.5rem; color: var(--text-high);"><i class="ph ph-fingerprint" style="color: var(--accent-purple);"></i> Hardware Security</h2>
+                    <button class="action-btn" style="border-radius: 50%;" onclick="closeManagePasskeysModal()"><i class="ph ph-x"></i></button>
                 </div>
                 <div style="margin-bottom: 24px;">
                     <p style="color: var(--text-med); font-size: 0.9rem; line-height: 1.5; margin-bottom: 1rem;">Biometric passkeys allow you to instantly unlock your dashboard using FaceID, TouchID, or native Windows Hello without ever typing your plaintext PIN.</p>
@@ -316,6 +316,6 @@
     </div>
     <div id="toastContainer"></div>
 
-    <script src="app.js?v=5.0"></script>
+    <script src="app.js?v=6.0"></script>
 </body>
 </html>
