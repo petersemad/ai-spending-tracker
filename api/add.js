@@ -7,7 +7,7 @@ export default async function handler(request, response) {
 
     if (!requireAuth(request, response)) return;
 
-    const { amount, currency, type, vendor, category, date } = request.body;
+    const { amount, currency, type, vendor, category, date, tags } = request.body;
     const parsedAmount = parseFloat(amount);
 
     if (isNaN(parsedAmount) || !type || !vendor || !category) {
@@ -20,8 +20,8 @@ export default async function handler(request, response) {
         const txCurrency = currency || 'EGP';
 
         const result = await pool.query(
-            `INSERT INTO transactions (amount, currency, type, vendor, category, raw_text, date) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`,
-            [amount, txCurrency, type, vendor, category, rawText, txDate]
+            `INSERT INTO transactions (amount, currency, type, vendor, category, raw_text, date, tags) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id`,
+            [amount, txCurrency, type, vendor, category, rawText, txDate, tags || '']
         );
 
         response.status(200).json({ success: true, id: result.rows[0].id });

@@ -675,7 +675,8 @@ function renderTransactions(transactions) {
     if (searchQuery) {
         filtered = transactions.filter(tx => 
             (tx.vendor || '').toLowerCase().includes(searchQuery) ||
-            (tx.category || '').toLowerCase().includes(searchQuery)
+            (tx.category || '').toLowerCase().includes(searchQuery) ||
+            (tx.tags || '').toLowerCase().includes(searchQuery)
         );
     }
     
@@ -732,6 +733,7 @@ function renderTransactions(transactions) {
                             <p>
                                 <span class="tx-badge">${tx.category || 'Uncategorized'}</span>
                                 ${isDupe ? '<span class="tx-duplicate-badge">Possible Dupe</span>' : ''}
+                                ${tx.tags ? tx.tags.split(',').map(t => t.trim()).filter(Boolean).map(t => `<span class="tx-badge" style="background: rgba(167, 139, 250, 0.15); color: var(--accent-purple); border-color: rgba(167, 139, 250, 0.3);">#${t}</span>`).join(' ') : ''}
                                 • 
                                 ${dateStr}
                             </p>
@@ -1434,6 +1436,7 @@ window.openEditModal = (id) => {
     const currency = isEdit ? (tx.currency || 'EGP') : 'EGP';
     const vendor = isEdit ? (tx.vendor || '') : '';
     const type = isEdit ? (tx.type || 'Out') : 'Out';
+    const tagsStr = isEdit ? (tx.tags || '') : '';
     
     let dateStr = '';
     if (isEdit && tx.date) {
@@ -1512,6 +1515,11 @@ window.openEditModal = (id) => {
                     <input type="datetime-local" id="editDate" class="glass-input" value="${dateStr}">
                 </div>
                 
+                <div style="margin-bottom: 0.75rem;">
+                    <label>Tags (comma-separated)</label>
+                    <input type="text" id="editTags" class="glass-input" placeholder="e.g. food, holiday, tax-writeoff" value="${tagsStr}">
+                </div>
+                
                 <div class="modal-actions" style="margin-top: 1.5rem;">
                     <button class="modal-btn cancel" onclick="window.closeModal()">Cancel</button>
                     <button class="modal-btn confirm" onclick="submitEdit(${id})">${isEdit ? 'Save Changes' : 'Add Transaction'}</button>
@@ -1565,6 +1573,7 @@ window.submitEdit = async (id) => {
     const vendor = document.getElementById('editVendor').value.trim();
     const type = document.getElementById('editType').value;
     const dateStr = document.getElementById('editDate').value;
+    const tags = document.getElementById('editTags').value.trim();
     
     if (isNaN(parsedAmount) || parsedAmount < 0) {
         showToast('Amount must be a valid positive number.', 'warning'); return;
@@ -1584,7 +1593,7 @@ window.submitEdit = async (id) => {
     }
 
     const payload = {
-        amount, currency, type, vendor, category: finalCategory
+        amount, currency, type, vendor, category: finalCategory, tags
     };
     if (dateStr) {
         payload.date = new Date(dateStr).toISOString();

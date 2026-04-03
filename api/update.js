@@ -20,7 +20,7 @@ export default async function handler(request, response) {
         let index = 1;
 
         for (const [key, value] of Object.entries(fieldsToUpdate)) {
-            const allowedFields = ['amount', 'currency', 'type', 'vendor', 'category', 'date', 'raw_text'];
+            const allowedFields = ['amount', 'currency', 'type', 'vendor', 'category', 'date', 'raw_text', 'tags'];
             if (allowedFields.includes(key)) {
                 let parsedValue = value;
                 if (key === 'amount') {

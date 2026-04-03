@@ -37,9 +37,11 @@ export const initSchema = () => {
             vendor VARCHAR(255),
             category VARCHAR(255),
             raw_text TEXT,
-            date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            tags TEXT
         )`);
         await pool.query(`ALTER TABLE transactions ADD COLUMN IF NOT EXISTS currency VARCHAR(10) DEFAULT 'EGP'`).catch(() => {});
+        await pool.query(`ALTER TABLE transactions ADD COLUMN IF NOT EXISTS tags TEXT`).catch(() => {});
 
         await pool.query(`CREATE TABLE IF NOT EXISTS budgets (
             category VARCHAR(255) PRIMARY KEY,
