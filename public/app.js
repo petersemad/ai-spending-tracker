@@ -710,6 +710,10 @@ function renderTransactions(transactions) {
         });
 
         const safeVendor = (tx.vendor || '').replace(/'/g, "\\'");
+        const safeCategory = (tx.category || 'Subscription').replace(/'/g, "\\'");
+        const safeCurrency = (tx.currency || 'EGP').replace(/'/g, "\\'");
+        const txAmountStr = typeof tx.amount !== 'undefined' && tx.amount !== null ? tx.amount.toString() : '0';
+        
         const isRecurring = Object.keys(recurringVendors).includes(tx.vendor);
         const recurringIconStyle = isRecurring ? 'color: var(--money-in); text-shadow: 0 0 10px rgba(52,211,153,0.5);' : '';
         const catMap = getCategoryIcon(tx.category);
@@ -740,7 +744,7 @@ function renderTransactions(transactions) {
                             </div>
                         </div>
                         <div class="tx-actions" style="display: flex; gap: 0.35rem;">
-                            <button class="action-btn" onclick="toggleRecurring('${safeVendor}')" title="Mark as Subscription" style="${recurringIconStyle}">
+                            <button class="action-btn" onclick="toggleRecurring('${safeVendor}', false, false, ${txAmountStr}, '${safeCategory}', '${safeCurrency}')" title="Mark as Subscription" style="${recurringIconStyle}">
                                 <i class="ph ph-arrows-clockwise"></i>
                             </button>
                             <button class="action-btn edit-btn" onclick="openEditModal(${tx.id})" title="Edit">
@@ -1318,7 +1322,7 @@ window.saveSubscription = async () => {
     }
 };
 
-window.toggleRecurring = async (vendor, forceAdd = false, forceDelete = false) => {
+window.toggleRecurring = async (vendor, forceAdd = false, forceDelete = false, txAmount = null, txCategory = null, txCurrency = null) => {
     const isCurrentlyRecurring = Object.keys(recurringVendors).includes(vendor);
     
     if (forceAdd && isCurrentlyRecurring) {
@@ -1333,20 +1337,28 @@ window.toggleRecurring = async (vendor, forceAdd = false, forceDelete = false) =
     }
     
     const method = (isCurrentlyRecurring && !forceAdd) || forceDelete ? 'DELETE' : 'POST';
+    const action = method === 'POST' ? 'add' : 'remove';
 
-    if (method === 'POST') {
+    if (method === 'POST' && txAmount === null) {
         openSubscriptionModal(vendor);
         return;
     }
 
-    if (!(await customConfirm(`Are you sure you want to remove explicit subscription tracking for "${vendor}"?`))) return;
+    if (!(await customConfirm(`Are you sure you want to ${action} explicit subscription tracking for "${vendor}"?`))) return;
     const password = sessionStorage.getItem('spendAuth');
+
+    const payload = { vendor };
+    if (method === 'POST') {
+        payload.amount = txAmount;
+        payload.category = txCategory || 'Subscription';
+        payload.currency = txCurrency || 'EGP';
+    }
 
     try {
         const response = await fetch('/api/recurring', {
             method,
             headers: { 'Content-Type': 'application/json', 'x-admin-pin': sessionStorage.getItem('spendAuth') },
-            body: JSON.stringify({ vendor })
+            body: JSON.stringify(payload)
         });
         const result = await response.json();
         if (result.success) {
