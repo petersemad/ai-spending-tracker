@@ -1333,9 +1333,13 @@ window.toggleRecurring = async (vendor, forceAdd = false, forceDelete = false) =
     }
     
     const method = (isCurrentlyRecurring && !forceAdd) || forceDelete ? 'DELETE' : 'POST';
-    const action = method === 'POST' ? 'add' : 'remove';
 
-    if (!(await customConfirm(`Are you sure you want to ${action} explicit subscription tracking for "${vendor}"?`))) return;
+    if (method === 'POST') {
+        openSubscriptionModal(vendor);
+        return;
+    }
+
+    if (!(await customConfirm(`Are you sure you want to remove explicit subscription tracking for "${vendor}"?`))) return;
     const password = sessionStorage.getItem('spendAuth');
 
     try {
