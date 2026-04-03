@@ -144,7 +144,7 @@ window.registerBiometric = async () => {
     if (!pin) return showToast('You must be logged in to register biometrics.', 'error');
     if (typeof SimpleWebAuthnBrowser === 'undefined') return showToast('Biometrics library not loaded.', 'error');
 
-    const btn = document.getElementById('enableBiometricsBtn');
+    const btn = document.getElementById('triggerNewBiometricBtn');
     const originalHtml = btn.innerHTML;
     try {
         btn.innerHTML = '<i class="ph ph-spinner ph-spin"></i> Securing Hardware...';
