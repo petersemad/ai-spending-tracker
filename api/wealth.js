@@ -24,38 +24,64 @@ export default async function handler(request, response) {
                 console.error("Failed to fetch live API", e);
             }
 
+            let realEgpGold = { k18: null, k21: null, k24: null, pound: null };
             try {
-                // Secondary Scrape: Attempt to pull local Egyptian Premium from RealEGP
-                const regpRes = await fetch('https://realegp.com/', { headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' }});
+                // Secondary Scrape: Attempt to pull local Egyptian Gold from RealEGP
+                const regpRes = await fetch('https://realegp.com/gold', { headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' }});
                 if (regpRes.ok) {
                     const html = await regpRes.text();
-                    const match = html.match(/conversion_rate\s*=\s*([\d\.]+);/i);
-                    if (match && match[1]) {
-                        realEgpRate = parseFloat(match[1]);
-                    }
+                    
+                    const m24 = html.match(/<div>ذهب عيار 24<\/div>[\s\S]{1,150}?<span class="fixed-num">([\d,]+)<\/span>/i);
+                    const m21 = html.match(/<div>ذهب عيار 21<\/div>[\s\S]{1,150}?<span class="fixed-num">([\d,]+)<\/span>/i);
+                    const m18 = html.match(/<div>ذهب عيار 18<\/div>[\s\S]{1,150}?<span class="fixed-num">([\d,]+)<\/span>/i);
+                    const mpound = html.match(/<div>جنيه الذهب<\/div>[\s\S]{1,150}?<span class="fixed-num">([\d,]+)<\/span>/i);
+                    
+                    if (m24) realEgpGold.k24 = parseFloat(m24[1].replace(/,/g, ''));
+                    if (m21) realEgpGold.k21 = parseFloat(m21[1].replace(/,/g, ''));
+                    if (m18) realEgpGold.k18 = parseFloat(m18[1].replace(/,/g, ''));
+                    if (mpound) realEgpGold.pound = parseFloat(mpound[1].replace(/,/g, ''));
                 }
             } catch (e) {
-                console.error("Failed to scrape RealEGP, using default.", e);
+                console.error("Failed to scrape RealEGP Gold, using default.", e);
             }
 
 // Process automated values
             const processedAssets = assets.map(asset => {
                 if (asset.is_automated && liveData) {
-                    if (['Gold', 'Silver'].includes(asset.commodity_type)) {
-                        const metalKey = asset.commodity_type === 'Gold' ? 'xau' : 'xag';
+                    if (asset.commodity_type.startsWith('Gold') || asset.commodity_type === 'Silver') {
+                        const isGold = asset.commodity_type.startsWith('Gold');
+                        const metalKey = isGold ? 'xau' : 'xag';
                         if (liveData[metalKey]) {
                             const usdPerOunce = 1 / liveData[metalKey];
-                            const usdPerGram = usdPerOunce / 31.1034768;
+                            const usdPerGram = usdPerOunce / 31.1034768; // 24k baseline
                             
                             let currentUnitValue = usdPerGram;
-                            const currencyStr = (asset.currency || 'USD').toLowerCase();
                             if (asset.currency === 'EGP') {
-                                const egpRateToUse = realEgpRate || liveData.egp;
-                                if (egpRateToUse) {
-                                    currentUnitValue = usdPerGram * egpRateToUse;
+                                if (isGold && asset.commodity_type.includes('Pound')) {
+                                    currentUnitValue = realEgpGold.pound || (usdPerGram * 8 * 0.875 * (realEgpRate || liveData.egp)); // Pound is 8g of 21k
+                                } else if (isGold && realEgpGold.k24) {
+                                    if (asset.commodity_type.includes('18k') && realEgpGold.k18) currentUnitValue = realEgpGold.k18;
+                                    else if (asset.commodity_type.includes('21k') && realEgpGold.k21) currentUnitValue = realEgpGold.k21;
+                                    else currentUnitValue = realEgpGold.k24; // Default to 24k
+                                } else {
+                                    // Fallback to international baseline
+                                    let caratMultiplier = 1;
+                                    if (asset.commodity_type.includes('18k')) caratMultiplier = 18/24;
+                                    if (asset.commodity_type.includes('21k')) caratMultiplier = 21/24;
+                                    currentUnitValue = (usdPerGram * caratMultiplier) * (realEgpRate || liveData.egp || 1);
                                 }
-                            } else if (asset.currency !== 'USD' && liveData[currencyStr]) {
-                                currentUnitValue = usdPerGram * liveData[currencyStr];
+                            } else if (asset.currency !== 'USD' && liveData[(asset.currency || 'USD').toLowerCase()]) {
+                                let caratMultiplier = 1;
+                                if (isGold && asset.commodity_type.includes('Pound')) caratMultiplier = 8 * 0.875;
+                                else if (isGold && asset.commodity_type.includes('18k')) caratMultiplier = 18/24;
+                                else if (isGold && asset.commodity_type.includes('21k')) caratMultiplier = 21/24;
+                                currentUnitValue = (usdPerGram * caratMultiplier) * liveData[(asset.currency || 'USD').toLowerCase()];
+                            } else {
+                                let caratMultiplier = 1;
+                                if (isGold && asset.commodity_type.includes('Pound')) caratMultiplier = 8 * 0.875;
+                                else if (isGold && asset.commodity_type.includes('18k')) caratMultiplier = 18/24;
+                                else if (isGold && asset.commodity_type.includes('21k')) caratMultiplier = 21/24;
+                                currentUnitValue = usdPerGram * caratMultiplier;
                             }
                             return { ...asset, current_manual_value: currentUnitValue, _is_live: true };
                         }
@@ -85,13 +111,17 @@ export default async function handler(request, response) {
             if (liveData) {
                 const btc_usd = liveData.btc ? (1 / liveData.btc) : null;
                 let gold_egp_gram = null;
-                const egpRateToUseForTicker = realEgpRate || liveData.egp;
-                if (liveData.xau && egpRateToUseForTicker) {
-                    const usdPerOunce = 1 / liveData.xau;
-                    const usdPerGram = usdPerOunce / 31.1034768;
-                    gold_egp_gram = usdPerGram * egpRateToUseForTicker;
+                if (realEgpGold.k24) {
+                    gold_egp_gram = realEgpGold.k24;
+                } else {
+                    const egpRateToUseForTicker = realEgpRate || liveData.egp;
+                    if (liveData.xau && egpRateToUseForTicker) {
+                        const usdPerOunce = 1 / liveData.xau;
+                        const usdPerGram = usdPerOunce / 31.1034768;
+                        gold_egp_gram = usdPerGram * egpRateToUseForTicker;
+                    }
                 }
-                market_rates = { btc_usd, gold_egp_gram, last_updated: _liveDataDate, source: realEgpRate ? 'RealEGP + jsdelivr' : 'jsdelivr' };
+                market_rates = { btc_usd, gold_egp_gram, last_updated: _liveDataDate, source: realEgpGold.k24 ? 'RealEGP Gold Scrape' : (realEgpRate ? 'RealEGP Fiat + jsdelivr' : 'jsdelivr') };
             }
 
             return response.status(200).json({ wealth_assets: processedAssets, market_rates });

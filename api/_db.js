@@ -92,6 +92,12 @@ export const initSchema = () => {
             current_manual_value DECIMAL(15,2),
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )`);
+
+        await pool.query(`CREATE TABLE IF NOT EXISTS wealth_history (
+            id SERIAL PRIMARY KEY,
+            log_date DATE UNIQUE DEFAULT CURRENT_DATE,
+            total_usd DECIMAL(15,2)
+        )`);
     } catch (e) {
         console.error("Schema initialization error:", e);
     }

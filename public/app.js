@@ -2723,7 +2723,69 @@ function renderWealth() {
         list.insertAdjacentHTML('beforeend', html);
     });
 
-    document.getElementById('totalWealthValue').innerHTML = formatCcy(totalUsd, 'USD');
+    document.getElementById('totalWealthValue').innerHTML = 'USD ' + numberWithCommas(totalUsd.toFixed(2));
+    
+    // Save snapshot and render chart
+    logAndRenderWealthHistory(totalUsd);
+}
+
+let wealthChartInstance = null;
+
+async function logAndRenderWealthHistory(currentTotal) {
+    const auth = sessionStorage.getItem('spendAuth');
+    if(!auth) return;
+    try {
+        await fetch('/api/wealth_history', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'x-admin-pin': auth },
+            body: JSON.stringify({ totalUsd: currentTotal })
+        });
+        
+        const res = await fetch('/api/wealth_history', { headers: { 'x-admin-pin': auth } });
+        const data = await res.json();
+        
+        if (data.success && data.history) {
+            const ctx = document.getElementById('wealthChart').getContext('2d');
+            if (wealthChartInstance) wealthChartInstance.destroy();
+            
+            wealthChartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: data.history.map(h => h.date_str),
+                    datasets: [{
+                        label: 'Net Worth (USD)',
+                        data: data.history.map(h => parseFloat(h.total_usd)),
+                        borderColor: '#34d399',
+                        backgroundColor: 'rgba(52, 211, 153, 0.1)',
+                        borderWidth: 2,
+                        tension: 0.3,
+                        fill: true,
+                        pointBackgroundColor: '#34d399',
+                        pointBorderColor: '#fff',
+                        pointRadius: 3
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { 
+                            beginAtZero: false,
+                            grid: { color: 'rgba(255,255,255,0.05)', drawBorder: false },
+                            ticks: { color: 'rgba(255,255,255,0.5)', callback: (v) => '$' + v }
+                        },
+                        x: { 
+                            grid: { display: false, drawBorder: false },
+                            ticks: { color: 'rgba(255,255,255,0.5)' }
+                        }
+                    }
+                }
+            });
+        }
+    } catch(e) {
+        console.error("Wealth history error:", e);
+    }
 }
 
 window.promptAddAsset = () => {
@@ -2771,12 +2833,15 @@ window.promptAddAsset = () => {
                     <div style="flex:1;">
                         <label>Specific Metal</label>
                         <select id="waCommoditySpec" class="glass-select" style="width:100%;">
-                            <option value="Gold">Gold</option>
+                            <option value="Gold-24k">Gold (24k)</option>
+                            <option value="Gold-21k">Gold (21k)</option>
+                            <option value="Gold-18k">Gold (18k)</option>
+                            <option value="Gold-Pound">Gold Pound (Local)</option>
                             <option value="Silver">Silver</option>
                         </select>
                     </div>
                     <div style="flex:1;">
-                        <label>Quantity (Grams)</label>
+                        <label>Quantity (Grams/Coins)</label>
                         <input type="number" step="0.01" id="waDynQty" class="glass-input" placeholder="e.g. 50">
                     </div>
                 </div>
