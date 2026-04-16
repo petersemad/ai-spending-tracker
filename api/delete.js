@@ -1,4 +1,4 @@
-import { pool, requireAuth } from './db.js';
+import { pool, requireAuth } from './_db.js';
 
 export default async function handler(request, response) {
     if (request.method !== 'DELETE') {

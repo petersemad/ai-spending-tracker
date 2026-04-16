@@ -1,4 +1,4 @@
-import { pool } from './db.js';import { OpenAI } from 'openai';
+import { pool } from './_db.js';import { OpenAI } from 'openai';
 
 const openai = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY

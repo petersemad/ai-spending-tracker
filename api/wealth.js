@@ -1,4 +1,4 @@
-import { pool, requireAuth } from './db.js';
+import { pool, requireAuth } from './_db.js';
 
 export default async function handler(request, response) {
     if (!requireAuth(request, response)) return;
@@ -35,10 +35,11 @@ export default async function handler(request, response) {
                             const usdPerGram = usdPerOunce / 31.1034768;
                             
                             let currentUnitValue = usdPerGram;
+                            const currencyStr = (asset.currency || 'USD').toLowerCase();
                             if (asset.currency === 'EGP' && liveData.egp) {
                                 currentUnitValue = usdPerGram * liveData.egp;
-                            } else if (asset.currency !== 'USD' && liveData[asset.currency.toLowerCase()]) {
-                                currentUnitValue = usdPerGram * liveData[asset.currency.toLowerCase()];
+                            } else if (asset.currency !== 'USD' && liveData[currencyStr]) {
+                                currentUnitValue = usdPerGram * liveData[currencyStr];
                             }
                             return { ...asset, current_manual_value: currentUnitValue, _is_live: true };
                         }
@@ -51,7 +52,8 @@ export default async function handler(request, response) {
                             let fiatInUsd = 1 / (liveData[fiat] || 1); // e.g. 1 EUR in USD
                             if (fiat === 'usd') fiatInUsd = 1;
                             
-                            let targetInUsd = 1 / (liveData[asset.currency.toLowerCase()] || 1);
+                            const targetCurrencyStr = (asset.currency || 'USD').toLowerCase();
+                            let targetInUsd = 1 / (liveData[targetCurrencyStr] || 1);
                             if (asset.currency === 'USD') targetInUsd = 1;
 
                             const fiatInTargetCurrency = fiatInUsd / targetInUsd;
