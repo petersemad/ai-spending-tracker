@@ -8,21 +8,16 @@ export default async function handler(request, response) {
             const result = await pool.query(`SELECT * FROM wealth_assets ORDER BY id ASC`);
             let assets = result.rows;
 
-            // Fetch live data for automated assets
+            // Always fetch live data for both automated assets AND the top ticker
             let liveData = null;
-            let needsLive = assets.some(a => a.is_automated);
-
-            if (needsLive) {
-                try {
-                    // Fetch live currency and XAU data from a free CDN API
-                    const fetchRes = await fetch('https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/usd.json');
-                    if (fetchRes.ok) {
-                        const data = await fetchRes.json();
-                        liveData = data.usd;
-                    }
-                } catch (e) {
-                    console.error("Failed to fetch live API", e);
+            try {
+                const fetchRes = await fetch('https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/usd.json');
+                if (fetchRes.ok) {
+                    const data = await fetchRes.json();
+                    liveData = data.usd;
                 }
+            } catch (e) {
+                console.error("Failed to fetch live API", e);
             }
 
             // Process automated values
@@ -64,7 +59,19 @@ export default async function handler(request, response) {
                 return { ...asset, _is_live: false };
             });
 
-            return response.status(200).json({ wealth_assets: processedAssets });
+            let market_rates = null;
+            if (liveData) {
+                const btc_usd = liveData.btc ? (1 / liveData.btc) : null;
+                let gold_egp_gram = null;
+                if (liveData.xau && liveData.egp) {
+                    const usdPerOunce = 1 / liveData.xau;
+                    const usdPerGram = usdPerOunce / 31.1034768;
+                    gold_egp_gram = usdPerGram * liveData.egp;
+                }
+                market_rates = { btc_usd, gold_egp_gram };
+            }
+
+            return response.status(200).json({ wealth_assets: processedAssets, market_rates });
         }
         
         if (request.method === 'POST') {

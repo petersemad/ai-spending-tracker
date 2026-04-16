@@ -2606,6 +2606,7 @@ window.deletePasskey = async (id) => {
 
 // ====== WEALTH TRACKER LOGIC ======
 let globalWealthAssets = [];
+let globalMarketRates = null;
 
 async function fetchWealthData() {
     const auth = sessionStorage.getItem('spendAuth');
@@ -2615,6 +2616,7 @@ async function fetchWealthData() {
         const data = await res.json();
         if(data.wealth_assets) {
             globalWealthAssets = data.wealth_assets;
+            if (data.market_rates) globalMarketRates = data.market_rates;
             renderWealth();
         }
     } catch(e) {
@@ -2625,6 +2627,30 @@ async function fetchWealthData() {
 function renderWealth() {
     const list = document.getElementById('wealthList');
     if(!list) return;
+    
+    const tickerBox = document.getElementById('marketTickerBox');
+    if (globalMarketRates && tickerBox) {
+        tickerBox.style.display = 'flex';
+        tickerBox.style.gap = '1rem';
+        tickerBox.innerHTML = `
+            <div style="flex:1; background:rgba(255,255,255,0.02); border:1px solid var(--glass-border); border-radius:12px; padding:0.75rem; display:flex; justify-content:space-between; align-items:center;">
+                <div style="display:flex; align-items:center; gap:0.5rem;">
+                    <i class="ph ph-coins" style="color:#ffd700; font-size:1.25rem;"></i>
+                    <span style="font-size:0.85rem; color:var(--text-med); font-weight:500;">Gold 24k</span>
+                </div>
+                <div style="font-weight:700; font-size:1rem; color:var(--text-high);">${globalMarketRates.gold_egp_gram ? formatCcy(globalMarketRates.gold_egp_gram, 'EGP') + ' /g' : '...'}</div>
+            </div>
+            <div style="flex:1; background:rgba(255,255,255,0.02); border:1px solid var(--glass-border); border-radius:12px; padding:0.75rem; display:flex; justify-content:space-between; align-items:center;">
+                <div style="display:flex; align-items:center; gap:0.5rem;">
+                    <i class="ph ph-currency-btc" style="color:#f59e0b; font-size:1.25rem;"></i>
+                    <span style="font-size:0.85rem; color:var(--text-med); font-weight:500;">Bitcoin</span>
+                </div>
+                <div style="font-weight:700; font-size:1rem; color:var(--text-high);">${globalMarketRates.btc_usd ? formatCcy(globalMarketRates.btc_usd, 'USD') : '...'}</div>
+            </div>
+            <div style="font-size:0.7rem; color:var(--text-low); text-align:right; margin-top:0.25rem; width:100%;">Source: jsdelivr / fawazahmed0 API</div>
+        `;
+        tickerBox.style.flexWrap = 'wrap';
+    }
 
     if (globalWealthAssets.length === 0) {
         list.innerHTML = `<div class="loading-state"><i class="ph ph-bank" style="font-size:2rem; margin-bottom:1rem; color:var(--text-med)"></i><p>No assets tracked yet.</p></div>`;
@@ -2642,10 +2668,6 @@ function renderWealth() {
         
         let currentValuePerUnit = parseFloat(asset.current_manual_value) || 0;
         let totalCurrentValueEgpOrUsd = currentValuePerUnit * qty;
-
-        if(asset.asset_type === 'Currency') {
-            totalCurrentValueEgpOrUsd = currentValuePerUnit; 
-        }
 
         const isLive = asset._is_live ? '<span style="color:#34d399; font-size:0.75rem; margin-left:0.5rem;"><i class="ph ph-activity"></i> Live Tracker API</span>' : '<span style="color:var(--text-low); font-size:0.75rem; margin-left:0.5rem;"><i class="ph ph-pencil-simple"></i> Manual Tracking</span>';
 
@@ -2796,7 +2818,7 @@ window.promptAddAsset = () => {
             
             <div style="display:flex; gap:1rem; margin-bottom:1rem;">
                 <div style="flex:1;">
-                    <label>Total Buying Price (Cost Basis)</label>
+                    <label>Total Buying Price (Cost)</label>
                     <input type="number" step="0.01" id="waBuyPrice" class="glass-input" placeholder="Total Cost">
                 </div>
                 <div style="flex:1;">
@@ -2806,7 +2828,7 @@ window.promptAddAsset = () => {
             </div>
             
             <div style="margin-bottom:1.5rem;">
-                <label>Valuation Target Currency</label>
+                <label>Transaction / Input Currency</label>
                 <select id="waValuationCurrency" class="glass-select" style="width:100%;">
                     <option value="USD">USD</option>
                     <option value="EGP">EGP</option>
