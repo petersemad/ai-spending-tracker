@@ -2648,7 +2648,7 @@ function renderWealth() {
                 <div style="font-weight:700; font-size:1rem; color:var(--text-high);">${globalMarketRates.btc_usd ? formatCcy(globalMarketRates.btc_usd, 'USD') : '...'}</div>
             </div>
             <div style="font-size:0.75rem; color:var(--text-low); text-align:right; margin-top:0.25rem; width:100%;">
-                Source: jsdelivr / fawazahmed0 API &bull; 
+                Source: ${globalMarketRates.source || 'jsdelivr / fawazahmed0 API'} &bull; 
                 <span style="color:var(--text-med); font-weight:500;">
                     ${globalMarketRates.last_updated ? 'Last updated: ' + globalMarketRates.last_updated : 'Live sync active'}
                 </span>

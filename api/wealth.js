@@ -11,7 +11,9 @@ export default async function handler(request, response) {
             // Always fetch live data for both automated assets AND the top ticker
             let liveData = null;
             let _liveDataDate = null;
+            let realEgpRate = null;
             try {
+                // Fetch basic global API
                 const fetchRes = await fetch('https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/usd.json');
                 if (fetchRes.ok) {
                     const data = await fetchRes.json();
@@ -20,6 +22,20 @@ export default async function handler(request, response) {
                 }
             } catch (e) {
                 console.error("Failed to fetch live API", e);
+            }
+
+            try {
+                // Secondary Scrape: Attempt to pull local Egyptian Premium from RealEGP
+                const regpRes = await fetch('https://realegp.com/', { headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' }});
+                if (regpRes.ok) {
+                    const html = await regpRes.text();
+                    const match = html.match(/conversion_rate\s*=\s*([\d\.]+);/i);
+                    if (match && match[1]) {
+                        realEgpRate = parseFloat(match[1]);
+                    }
+                }
+            } catch (e) {
+                console.error("Failed to scrape RealEGP, using default.", e);
             }
 
 // Process automated values
@@ -33,8 +49,11 @@ export default async function handler(request, response) {
                             
                             let currentUnitValue = usdPerGram;
                             const currencyStr = (asset.currency || 'USD').toLowerCase();
-                            if (asset.currency === 'EGP' && liveData.egp) {
-                                currentUnitValue = usdPerGram * liveData.egp;
+                            if (asset.currency === 'EGP') {
+                                const egpRateToUse = realEgpRate || liveData.egp;
+                                if (egpRateToUse) {
+                                    currentUnitValue = usdPerGram * egpRateToUse;
+                                }
                             } else if (asset.currency !== 'USD' && liveData[currencyStr]) {
                                 currentUnitValue = usdPerGram * liveData[currencyStr];
                             }
@@ -45,13 +64,14 @@ export default async function handler(request, response) {
                         const fiatCand = asset.asset_name.match(/\b(EUR|GBP|USD|EGP|CAD|AUD)\b/i);
                         if (fiatCand) {
                             const fiat = fiatCand[1].toLowerCase();
-                            // Value of 1 unit of fiat in the target valuation currency
-                            let fiatInUsd = 1 / (liveData[fiat] || 1); // e.g. 1 EUR in USD
+                            let fiatInUsd = 1 / (liveData[fiat] || 1); 
                             if (fiat === 'usd') fiatInUsd = 1;
+                            if (fiat === 'egp') fiatInUsd = 1 / (realEgpRate || liveData.egp || 1); // RealEgp Override
                             
                             const targetCurrencyStr = (asset.currency || 'USD').toLowerCase();
                             let targetInUsd = 1 / (liveData[targetCurrencyStr] || 1);
                             if (asset.currency === 'USD') targetInUsd = 1;
+                            if (asset.currency === 'EGP') targetInUsd = 1 / (realEgpRate || liveData.egp || 1);
 
                             const fiatInTargetCurrency = fiatInUsd / targetInUsd;
                             return { ...asset, current_manual_value: fiatInTargetCurrency, _is_live: true };
@@ -65,12 +85,13 @@ export default async function handler(request, response) {
             if (liveData) {
                 const btc_usd = liveData.btc ? (1 / liveData.btc) : null;
                 let gold_egp_gram = null;
-                if (liveData.xau && liveData.egp) {
+                const egpRateToUseForTicker = realEgpRate || liveData.egp;
+                if (liveData.xau && egpRateToUseForTicker) {
                     const usdPerOunce = 1 / liveData.xau;
                     const usdPerGram = usdPerOunce / 31.1034768;
-                    gold_egp_gram = usdPerGram * liveData.egp;
+                    gold_egp_gram = usdPerGram * egpRateToUseForTicker;
                 }
-                market_rates = { btc_usd, gold_egp_gram, last_updated: _liveDataDate };
+                market_rates = { btc_usd, gold_egp_gram, last_updated: _liveDataDate, source: realEgpRate ? 'RealEGP + jsdelivr' : 'jsdelivr' };
             }
 
             return response.status(200).json({ wealth_assets: processedAssets, market_rates });
