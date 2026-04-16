@@ -40,6 +40,14 @@ window.customConfirm = (msg) => {
     });
 };
 
+// ======= TAB SCROLLING =======
+window.scrollTabNav = (offset) => {
+    const nav = document.getElementById('mainTabNav');
+    if (nav) {
+        nav.scrollBy({ left: offset, behavior: 'smooth' });
+    }
+};
+
 // ======= TOAST SYSTEM =======
 function showToast(message, type = 'info', duration = 3500, options = {}) {
     const container = document.getElementById('toastContainer');

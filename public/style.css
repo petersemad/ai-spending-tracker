@@ -206,22 +206,55 @@ body::after {
   border: 1px solid var(--glass-border);
 }
 
-/* Tab Navigation */
-.tab-nav {
+.tab-nav-container {
   display: flex;
-  gap: 0.5rem;
-  margin-bottom: 1.5rem;
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-  scrollbar-width: none;
+  align-items: center;
   position: sticky;
   top: 0;
   z-index: 99;
   background: var(--glass-surface);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  padding: 1rem 0;
   border-bottom: 1px solid var(--glass-border);
+  margin-bottom: 1.5rem;
+  padding: 0 0.5rem;
+}
+
+/* Tab Navigation */
+.tab-nav {
+  display: flex;
+  gap: 0.5rem;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  padding: 1rem 0.5rem;
+  flex: 1;
+  scroll-behavior: smooth;
+}
+
+.nav-arrow {
+  display: none;
+  background: transparent;
+  border: none;
+  color: var(--text-med);
+  font-size: 1.2rem;
+  padding: 0.5rem;
+  cursor: pointer;
+  z-index: 10;
+  transition: color 0.2s;
+  flex-shrink: 0;
+}
+
+.nav-arrow:hover {
+  color: var(--text-high);
+}
+
+@media (min-width: 768px) {
+  .nav-arrow {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
 }
 
 .tab-nav::-webkit-scrollbar {

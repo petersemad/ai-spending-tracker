@@ -117,17 +117,21 @@
             </div>
         </div>
 
-        <!-- Tab Navigation -->
-        <div class="tab-nav">
-            <button class="tab-btn active" data-tab="transactions"><i class="ph ph-list"></i> Transactions</button>
-            <button class="tab-btn" data-tab="subscriptions"><i class="ph ph-calendar-blank"></i> Subscriptions</button>
-            <button class="tab-btn" data-tab="categories"><i class="ph ph-chart-pie-slice"></i> Categories</button>
-            <button class="tab-btn" data-tab="flow"><i class="ph ph-waves"></i> Cash Flow</button>
-            <button class="tab-btn" data-tab="income"><i class="ph ph-wallet"></i> Income</button>
-            <button class="tab-btn" data-tab="statistics"><i class="ph ph-chart-bar"></i> Statistics</button>
-            <button class="tab-btn" data-tab="insights"><i class="ph ph-lightning"></i> Insights</button>
-            <button class="tab-btn" data-tab="chat"><i class="ph ph-sparkle"></i> AI Assistant</button>
-            <button class="tab-btn" data-tab="wealth"><i class="ph ph-bank"></i> Wealth Tracker</button>
+        <!-- Tab Navigation Wrapper -->
+        <div class="tab-nav-container">
+            <button class="nav-arrow" id="navArrowLeft" onclick="scrollTabNav(-200)"><i class="ph ph-caret-left"></i></button>
+            <div class="tab-nav" id="mainTabNav">
+                <button class="tab-btn active" data-tab="transactions"><i class="ph ph-list"></i> Transactions</button>
+                <button class="tab-btn" data-tab="subscriptions"><i class="ph ph-calendar-blank"></i> Subscriptions</button>
+                <button class="tab-btn" data-tab="categories"><i class="ph ph-chart-pie-slice"></i> Categories</button>
+                <button class="tab-btn" data-tab="flow"><i class="ph ph-waves"></i> Cash Flow</button>
+                <button class="tab-btn" data-tab="income"><i class="ph ph-wallet"></i> Income</button>
+                <button class="tab-btn" data-tab="statistics"><i class="ph ph-chart-bar"></i> Statistics</button>
+                <button class="tab-btn" data-tab="insights"><i class="ph ph-lightning"></i> Insights</button>
+                <button class="tab-btn" data-tab="chat"><i class="ph ph-sparkle"></i> AI Assistant</button>
+                <button class="tab-btn" data-tab="wealth"><i class="ph ph-bank"></i> Wealth Tracker</button>
+            </div>
+            <button class="nav-arrow" id="navArrowRight" onclick="scrollTabNav(200)"><i class="ph ph-caret-right"></i></button>
         </div>
 
         <!-- Transactions Tab -->
