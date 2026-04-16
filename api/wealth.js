@@ -5,6 +5,11 @@ export default async function handler(request, response) {
 
     try {
         if (request.method === 'GET') {
+            if (request.query.history === 'true') {
+                const result = await pool.query(`SELECT to_char(log_date, 'YYYY-MM-DD') as date_str, total_usd FROM wealth_history ORDER BY log_date ASC`);
+                return response.status(200).json({ success: true, history: result.rows });
+            }
+
             const result = await pool.query(`SELECT * FROM wealth_assets ORDER BY id ASC`);
             let assets = result.rows;
 
@@ -128,6 +133,21 @@ export default async function handler(request, response) {
         }
         
         if (request.method === 'POST') {
+            if (request.body.action === 'history_snapshot') {
+                const { totalUsd } = request.body;
+                if (totalUsd === undefined || isNaN(parseFloat(totalUsd))) {
+                    return response.status(400).json({ success: false, error: 'Missing totalUsd' });
+                }
+                await pool.query(
+                    `INSERT INTO wealth_history (log_date, total_usd) 
+                     VALUES (CURRENT_DATE, $1) 
+                     ON CONFLICT (log_date) 
+                     DO UPDATE SET total_usd = EXCLUDED.total_usd`,
+                    [parseFloat(totalUsd)]
+                );
+                return response.status(200).json({ success: true });
+            }
+
             const { id, asset_name, asset_type, commodity_type, quantity, purchase_price, fees, currency, is_automated, current_manual_value } = request.body;
 
             if (!asset_name || isNaN(parseFloat(quantity))) {

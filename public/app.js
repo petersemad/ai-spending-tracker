@@ -2735,13 +2735,13 @@ async function logAndRenderWealthHistory(currentTotal) {
     const auth = sessionStorage.getItem('spendAuth');
     if(!auth) return;
     try {
-        await fetch('/api/wealth_history', {
+        await fetch('/api/wealth', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'x-admin-pin': auth },
-            body: JSON.stringify({ totalUsd: currentTotal })
+            body: JSON.stringify({ action: 'history_snapshot', totalUsd: currentTotal })
         });
         
-        const res = await fetch('/api/wealth_history', { headers: { 'x-admin-pin': auth } });
+        const res = await fetch('/api/wealth?history=true', { headers: { 'x-admin-pin': auth } });
         const data = await res.json();
         
         if (data.success && data.history) {
