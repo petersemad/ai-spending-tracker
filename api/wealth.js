@@ -10,17 +10,19 @@ export default async function handler(request, response) {
 
             // Always fetch live data for both automated assets AND the top ticker
             let liveData = null;
+            let _liveDataDate = null;
             try {
                 const fetchRes = await fetch('https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/usd.json');
                 if (fetchRes.ok) {
                     const data = await fetchRes.json();
                     liveData = data.usd;
+                    _liveDataDate = data.date;
                 }
             } catch (e) {
                 console.error("Failed to fetch live API", e);
             }
 
-            // Process automated values
+// Process automated values
             const processedAssets = assets.map(asset => {
                 if (asset.is_automated && liveData) {
                     if (['Gold', 'Silver'].includes(asset.commodity_type)) {
@@ -68,7 +70,7 @@ export default async function handler(request, response) {
                     const usdPerGram = usdPerOunce / 31.1034768;
                     gold_egp_gram = usdPerGram * liveData.egp;
                 }
-                market_rates = { btc_usd, gold_egp_gram };
+                market_rates = { btc_usd, gold_egp_gram, last_updated: _liveDataDate };
             }
 
             return response.status(200).json({ wealth_assets: processedAssets, market_rates });
