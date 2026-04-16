@@ -78,6 +78,20 @@ export const initSchema = () => {
             challenge TEXT NOT NULL,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )`);
+
+        await pool.query(`CREATE TABLE IF NOT EXISTS wealth_assets (
+            id SERIAL PRIMARY KEY,
+            asset_name VARCHAR(255),
+            asset_type VARCHAR(50),
+            commodity_type VARCHAR(50),
+            quantity DECIMAL(15,4),
+            purchase_price DECIMAL(15,2),
+            fees DECIMAL(15,2) DEFAULT 0,
+            currency VARCHAR(10) DEFAULT 'USD',
+            is_automated BOOLEAN DEFAULT false,
+            current_manual_value DECIMAL(15,2),
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )`);
     } catch (e) {
         console.error("Schema initialization error:", e);
     }

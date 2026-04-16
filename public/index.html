@@ -127,6 +127,7 @@
             <button class="tab-btn" data-tab="statistics"><i class="ph ph-chart-bar"></i> Statistics</button>
             <button class="tab-btn" data-tab="insights"><i class="ph ph-lightning"></i> Insights</button>
             <button class="tab-btn" data-tab="chat"><i class="ph ph-sparkle"></i> AI Assistant</button>
+            <button class="tab-btn" data-tab="wealth"><i class="ph ph-bank"></i> Wealth Tracker</button>
         </div>
 
         <!-- Transactions Tab -->
@@ -272,6 +273,25 @@
             </div>
             <div class="analytics-grid" id="analyticsGrid"></div>
             <div class="analytics-widget" id="heatmapWidget" style="margin-top:0;"></div>
+        </main>
+
+        <!-- Wealth Tab -->
+        <main class="glass-panel tab-content" id="tab-wealth">
+            <div class="panel-header" style="align-items: center; justify-content: space-between;">
+                <h2>Wealth Tracker</h2>
+                <div style="text-align: right;">
+                    <div style="font-size: 0.75rem; color: var(--text-med); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600;">Net Worth</div>
+                    <div id="totalWealthValue" style="font-size: 1.5rem; font-weight: 700; color: var(--money-in);">USD 0.00</div>
+                </div>
+            </div>
+            
+            <div style="display:flex; justify-content: flex-end; margin-bottom: 1rem;">
+                <button class="btn-glow" style="padding: 0.5rem 1rem; border-radius: 8px; font-size: 0.85rem;" onclick="promptAddAsset()">
+                    <i class="ph ph-plus"></i> Add Asset
+                </button>
+            </div>
+            
+            <div id="wealthList"></div>
         </main>
 
         <!-- Conversational Chat Tab -->

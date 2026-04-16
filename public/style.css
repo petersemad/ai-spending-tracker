@@ -216,7 +216,7 @@ body::after {
   scrollbar-width: none;
   position: sticky;
   top: 0;
-  z-index: 1000;
+  z-index: 99;
   background: var(--glass-surface);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
@@ -674,7 +674,7 @@ details.sms-expand summary:hover {
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 999;
+  z-index: 1001;
   padding: 1rem;
 }
 
