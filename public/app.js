@@ -2703,101 +2703,175 @@ window.promptAddAsset = () => {
     const overlay = document.createElement('div');
     overlay.className = 'modal-overlay';
     overlay.style.cssText = "z-index:99999;"; 
+    overlay.id = 'assetModalOverlay';
+    
+    let modalData = { category: null };
+    
+    const renderStep1 = () => {
+        return `
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem;">
+                <h3 style="margin:0;"><i class="ph ph-bank" style="color:var(--accent-purple);"></i> Add Wealth Asset</h3>
+                <button class="action-btn" onclick="document.getElementById('assetModalOverlay').remove()" style="padding:0.25rem;"><i class="ph ph-x"></i></button>
+            </div>
+            <p style="color:var(--text-med); margin-bottom:1.5rem; font-size:0.95rem;">What kind of asset are you adding?</p>
+            
+            <div style="display:grid; grid-template-columns: 1fr; gap:0.75rem; margin-bottom:1rem;">
+                <button class="btn-glow" style="justify-content:flex-start; padding:1rem; border-radius:12px; background:rgba(255,255,255,0.03);" onclick="window._setAssetCat('Precious Metals')">
+                    <i class="ph ph-coins" style="font-size:1.5rem; color:#ffd700; margin-right:0.75rem;"></i> Precious Metals (Gold / Silver)
+                </button>
+                <button class="btn-glow" style="justify-content:flex-start; padding:1rem; border-radius:12px; background:rgba(255,255,255,0.03);" onclick="window._setAssetCat('Fiat Currency')">
+                    <i class="ph ph-money" style="font-size:1.5rem; color:#34d399; margin-right:0.75rem;"></i> Fiat Currency (Cash)
+                </button>
+                <button class="btn-glow" style="justify-content:flex-start; padding:1rem; border-radius:12px; background:rgba(255,255,255,0.03);" onclick="window._setAssetCat('Crypto')">
+                    <i class="ph ph-currency-btc" style="font-size:1.5rem; color:#f59e0b; margin-right:0.75rem;"></i> Cryptocurrency
+                </button>
+                <button class="btn-glow" style="justify-content:flex-start; padding:1rem; border-radius:12px; background:rgba(255,255,255,0.03);" onclick="window._setAssetCat('Real Estate')">
+                    <i class="ph ph-house-line" style="font-size:1.5rem; color:#60a5fa; margin-right:0.75rem;"></i> Real Estate / Property
+                </button>
+                <button class="btn-glow" style="justify-content:flex-start; padding:1rem; border-radius:12px; background:rgba(255,255,255,0.03);" onclick="window._setAssetCat('Other')">
+                    <i class="ph ph-package" style="font-size:1.5rem; color:var(--text-med); margin-right:0.75rem;"></i> Other Asset
+                </button>
+            </div>
+        `;
+    };
+    
+    const renderStep2 = (cat) => {
+        let dynamicFields = '';
+        
+        if (cat === 'Precious Metals') {
+            dynamicFields = `
+                <div style="display:flex; gap:1rem; margin-bottom:1rem;">
+                    <div style="flex:1;">
+                        <label>Specific Metal</label>
+                        <select id="waCommoditySpec" class="glass-select" style="width:100%;">
+                            <option value="Gold">Gold</option>
+                            <option value="Silver">Silver</option>
+                        </select>
+                    </div>
+                    <div style="flex:1;">
+                        <label>Quantity (Grams)</label>
+                        <input type="number" step="0.01" id="waDynQty" class="glass-input" placeholder="e.g. 50">
+                    </div>
+                </div>
+            `;
+        } else if (cat === 'Fiat Currency') {
+            dynamicFields = `
+                <div style="display:flex; gap:1rem; margin-bottom:1rem;">
+                    <div style="flex:1;">
+                        <label>Currency Code</label>
+                        <input type="text" id="waCurrencyCode" class="glass-input" placeholder="e.g. EUR, GBP">
+                    </div>
+                    <div style="flex:1;">
+                        <label>Amount Held</label>
+                        <input type="number" step="0.01" id="waDynQty" class="glass-input" placeholder="e.g. 1000">
+                    </div>
+                </div>
+            `;
+        } else {
+            dynamicFields = `
+                <div style="margin-bottom:1rem;">
+                    <label>Asset Name</label>
+                    <input type="text" id="waCustomName" class="glass-input" placeholder="e.g. BTC Ledger, Uptown Apt">
+                </div>
+                <div style="display:flex; gap:1rem; margin-bottom:1rem;">
+                    <div style="flex:1;">
+                        <label>Quantity (Units / Coins)</label>
+                        <input type="number" step="0.01" id="waDynQty" class="glass-input" placeholder="e.g. 1">
+                    </div>
+                    <div style="flex:1;">
+                        <label>Current Total Value</label>
+                        <input type="number" step="0.01" id="waCurrentValue" class="glass-input" placeholder="Market Price">
+                    </div>
+                </div>
+            `;
+        }
+        
+        return `
+            <div style="display:flex; align-items:center; margin-bottom:1.5rem; gap:1rem;">
+                <button class="action-btn" onclick="window._renderAssetStep1()" style="padding:0.25rem;"><i class="ph ph-arrow-left"></i></button>
+                <h3 style="margin:0;">Add ${cat}</h3>
+            </div>
+            
+            ${dynamicFields}
+            
+            <div style="display:flex; gap:1rem; margin-bottom:1rem;">
+                <div style="flex:1;">
+                    <label>Total Buying Price (Cost Basis)</label>
+                    <input type="number" step="0.01" id="waBuyPrice" class="glass-input" placeholder="Total Cost">
+                </div>
+                <div style="flex:1;">
+                    <label>Fees Paid</label>
+                    <input type="number" step="0.01" id="waFees" class="glass-input" placeholder="e.g. 50">
+                </div>
+            </div>
+            
+            <div style="margin-bottom:1.5rem;">
+                <label>Valuation Target Currency</label>
+                <select id="waValuationCurrency" class="glass-select" style="width:100%;">
+                    <option value="USD">USD</option>
+                    <option value="EGP">EGP</option>
+                    <option value="EUR">EUR</option>
+                    <option value="GBP">GBP</option>
+                </select>
+            </div>
+            
+            <div class="modal-actions">
+                <button class="modal-btn cancel" onclick="document.getElementById('assetModalOverlay').remove()">Cancel</button>
+                <button class="modal-btn confirm" id="saveAssetBtn" onclick="window._submitAsset('${cat}')">Add Option</button>
+            </div>
+        `;
+    };
     
     const box = document.createElement('div');
     box.className = 'modal-box';
     
-    box.innerHTML = `
-        <h3 style="margin-bottom:1.5rem;"><i class="ph ph-bank" style="color:var(--accent-purple);"></i> Add Wealth Asset</h3>
-        
-        <label>Asset Name</label>
-        <input type="text" id="waName" class="glass-input" placeholder="e.g. BTC Wallet, Gold 24k" style="margin-bottom:1rem;">
-        
-        <div style="display:flex; gap:1rem; margin-bottom:1rem;">
-            <div style="flex:1;">
-                <label>Type</label>
-                <select id="waType" class="glass-select" style="width:100%; border-radius:10px;">
-                    <option value="Commodity">Commodity</option>
-                    <option value="Currency">Currency / Cash</option>
-                    <option value="Real Estate">Real Estate</option>
-                    <option value="Crypto">Crypto</option>
-                </select>
-            </div>
-            <div style="flex:1;">
-                <label>Specifics</label>
-                <select id="waCommodity" class="glass-select" style="width:100%; border-radius:10px;">
-                    <option value="Gold">Gold</option>
-                    <option value="Silver">Silver</option>
-                    <option value="None">None</option>
-                </select>
-            </div>
-        </div>
-
-        <div style="display:flex; gap:1rem; margin-bottom:1rem;">
-            <div style="flex:1;">
-                <label>Quantity (e.g. Grams)</label>
-                <input type="number" step="0.01" id="waQty" class="glass-input" placeholder="50.5">
-            </div>
-            <div style="flex:1;">
-                <label>Target Valuation Currency</label>
-                <select id="waCurrency" class="glass-select" style="width:100%; border-radius:10px;">
-                    <option value="USD">USD</option>
-                    <option value="EGP">EGP</option>
-                    <option value="EUR">EUR</option>
-                </select>
-            </div>
-        </div>
-
-        <div style="display:flex; gap:1rem; margin-bottom:1rem;">
-            <div style="flex:1;">
-                <label>Total Buying Price</label>
-                <input type="number" step="0.01" id="waBuyPrice" class="glass-input" placeholder="Total Cost">
-            </div>
-            <div style="flex:1;">
-                <label>Fees Paid</label>
-                <input type="number" step="0.01" id="waFees" class="glass-input" placeholder="e.g. 50">
-            </div>
-        </div>
-
-        <label style="display:flex; align-items:center; gap:0.5rem; margin-bottom:1rem; font-size:0.9rem; color:var(--text-high); cursor:pointer;">
-            <input type="checkbox" id="waAutomated" class="tx-select-checkbox" checked>
-            Automated API Sync (Gold/Silver/Global Fiat)
-        </label>
-        
-        <div id="waManualBlock" style="display:none; margin-bottom:1rem;">
-            <label>Current Live Value (Per Unit or Total)</label>
-            <input type="number" step="0.01" id="waManualVal" class="glass-input" placeholder="Current known price">
-        </div>
-
-        <div class="modal-actions">
-            <button class="modal-btn cancel" onclick="this.closest('.modal-overlay').remove()">Cancel</button>
-            <button class="modal-btn confirm" id="saveAssetBtn">Add to Ledger</button>
-        </div>
-    `;
+    window._setAssetCat = (cat) => {
+        modalData.category = cat;
+        box.innerHTML = renderStep2(cat);
+    };
+    window._renderAssetStep1 = () => {
+        box.innerHTML = renderStep1();
+    };
     
-    overlay.appendChild(box);
-    document.body.appendChild(overlay);
-
-    const autoCheck = document.getElementById('waAutomated');
-    const manualBlock = document.getElementById('waManualBlock');
-    autoCheck.addEventListener('change', () => {
-        manualBlock.style.display = autoCheck.checked ? 'none' : 'block';
-    });
-    
-    document.getElementById('saveAssetBtn').onclick = async () => {
+    window._submitAsset = async (cat) => {
         const payload = {
-            asset_name: document.getElementById('waName').value.trim(),
-            asset_type: document.getElementById('waType').value,
-            commodity_type: document.getElementById('waCommodity').value,
-            quantity: document.getElementById('waQty').value,
-            currency: document.getElementById('waCurrency').value,
-            purchase_price: document.getElementById('waBuyPrice').value,
-            fees: document.getElementById('waFees').value,
-            is_automated: document.getElementById('waAutomated').checked,
-            current_manual_value: document.getElementById('waManualVal').value
+            asset_type: cat === 'Precious Metals' ? 'Commodity' : (cat === 'Fiat Currency' ? 'Currency' : cat),
+            commodity_type: 'None',
+            currency: document.getElementById('waValuationCurrency').value,
+            purchase_price: document.getElementById('waBuyPrice').value || 0,
+            fees: document.getElementById('waFees').value || 0,
+            quantity: document.getElementById('waDynQty') ? document.getElementById('waDynQty').value : 0,
+            is_automated: false,
+            current_manual_value: 0
         };
         
-        if(!payload.asset_name || !payload.quantity) return showToast('Please enter Name and Quantity', 'warning');
+        let assetName = '';
+        
+        if (cat === 'Precious Metals') {
+            const spec = document.getElementById('waCommoditySpec').value;
+            assetName = `${spec} Holdings`;
+            payload.commodity_type = spec;
+            // Native auto Sync.
+            payload.is_automated = true;
+        } else if (cat === 'Fiat Currency') {
+            const code = document.getElementById('waCurrencyCode').value.toUpperCase();
+            if (!code) return showToast('Please enter Currency Code', 'warning');
+            assetName = `${code} Cash Reserve`;
+            // Native auto sync.
+            payload.is_automated = true;
+        } else {
+            assetName = document.getElementById('waCustomName').value.trim();
+            if(!assetName) return showToast('Please enter an Asset Name', 'warning');
+            
+            const totalVal = parseFloat(document.getElementById('waCurrentValue').value) || 0;
+            const qty = parseFloat(payload.quantity) || 1;
+            // We set per unit manual value
+            payload.current_manual_value = totalVal / qty;
+        }
+        
+        if(!payload.quantity || payload.quantity <= 0) return showToast('Quantity must be greater than 0', 'warning');
+        
+        payload.asset_name = assetName;
         
         const auth = sessionStorage.getItem('spendAuth');
         document.getElementById('saveAssetBtn').innerHTML = '<i class="ph ph-spinner ph-spin"></i> Saving...';
@@ -2811,16 +2885,20 @@ window.promptAddAsset = () => {
             const data = await res.json();
             if(data.success) {
                 showToast('Asset added to ledger successfully!', 'success');
-                overlay.remove();
+                document.getElementById('assetModalOverlay').remove();
                 fetchWealthData();
             } else {
                 throw new Error(data.error || 'Server rejected insertion');
             }
         } catch(e) {
             showToast(e.message, 'error');
-            document.getElementById('saveAssetBtn').innerHTML = 'Add to Ledger';
+            document.getElementById('saveAssetBtn').innerHTML = 'Add Option';
         }
     };
+    
+    box.innerHTML = renderStep1();
+    overlay.appendChild(box);
+    document.body.appendChild(overlay);
 };
 
 window.deleteWealthAsset = async (id) => {
