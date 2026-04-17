@@ -2723,7 +2723,7 @@ function renderWealth() {
         list.insertAdjacentHTML('beforeend', html);
     });
 
-    document.getElementById('totalWealthValue').innerHTML = 'USD ' + numberWithCommas(totalUsd.toFixed(2));
+    document.getElementById('totalWealthValue').innerHTML = formatCcy(totalUsd, 'USD');
     
     // Save snapshot and render chart
     logAndRenderWealthHistory(totalUsd);
