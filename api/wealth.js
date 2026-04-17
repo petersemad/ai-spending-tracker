@@ -148,27 +148,52 @@ export default async function handler(request, response) {
                 return response.status(200).json({ success: true });
             }
 
-            const { id, asset_name, asset_type, commodity_type, quantity, purchase_price, fees, currency, is_automated, current_manual_value } = request.body;
+            const { id, asset_name, asset_type, commodity_type, quantity, purchase_price, fees, currency, is_automated, current_manual_value, purchase_date } = request.body;
 
             if (!asset_name || isNaN(parseFloat(quantity))) {
-                return response.status(400).json({ success: false, error: 'Missing core asset parameters' });
+                return response.status(400).json({ success: false, error: 'Invalid input data' });
             }
+
+            const pDate = purchase_date || null;
 
             if (id) {
-                // Update
-                await pool.query(`
-                    UPDATE wealth_assets 
-                    SET asset_name=$1, asset_type=$2, commodity_type=$3, quantity=$4, purchase_price=$5, fees=$6, currency=$7, is_automated=$8, current_manual_value=$9
-                    WHERE id=$10
-                `, [asset_name, asset_type, commodity_type || null, parseFloat(quantity), parseFloat(purchase_price) || 0, parseFloat(fees) || 0, currency || 'USD', is_automated === true, parseFloat(current_manual_value) || 0, id]);
+                await pool.query(
+                    `UPDATE wealth_assets 
+                     SET asset_name = $1, asset_type = $2, commodity_type = $3, quantity = $4, purchase_price = $5, fees = $6, currency = $7, is_automated = $8, current_manual_value = $9, purchase_date = $10 
+                     WHERE id = $11`,
+                    [
+                        asset_name,
+                        asset_type || null,
+                        commodity_type || null,
+                        parseFloat(quantity),
+                        parseFloat(purchase_price) || 0,
+                        parseFloat(fees) || 0,
+                        currency || 'USD',
+                        is_automated || false,
+                        parseFloat(current_manual_value) || 0,
+                        pDate,
+                        id
+                    ]
+                );
             } else {
-                // Insert
-                await pool.query(`
-                    INSERT INTO wealth_assets (asset_name, asset_type, commodity_type, quantity, purchase_price, fees, currency, is_automated, current_manual_value) 
-                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-                `, [asset_name, asset_type, commodity_type || null, parseFloat(quantity), parseFloat(purchase_price) || 0, parseFloat(fees) || 0, currency || 'USD', is_automated === true, parseFloat(current_manual_value) || 0]);
+                await pool.query(
+                    `INSERT INTO wealth_assets 
+                    (asset_name, asset_type, commodity_type, quantity, purchase_price, fees, currency, is_automated, current_manual_value, purchase_date) 
+                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
+                    [
+                        asset_name,
+                        asset_type || null,
+                        commodity_type || null,
+                        parseFloat(quantity),
+                        parseFloat(purchase_price) || 0,
+                        parseFloat(fees) || 0,
+                        currency || 'USD',
+                        is_automated || false,
+                        parseFloat(current_manual_value) || 0,
+                        pDate
+                    ]
+                );
             }
-
             return response.status(200).json({ success: true });
         }
 

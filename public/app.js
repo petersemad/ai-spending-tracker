@@ -2694,6 +2694,12 @@ function renderWealth() {
         
         totalUsd += assetUsdValue;
 
+        let pDateHtml = '';
+        if (asset.purchase_date) {
+            const pDate = new Date(asset.purchase_date).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+            pDateHtml = ` on <span style="font-weight:600;">${pDate}</span>`;
+        }
+
         const html = `
             <div class="transaction-item" style="display:flex; justify-content:space-between; align-items:center;">
                 <div style="display:flex; gap:1rem; align-items:center;">
@@ -2705,14 +2711,17 @@ function renderWealth() {
                         <p style="color:var(--text-med); font-size:0.85rem;">
                             Type: ${asset.commodity_type || asset.asset_type} &bull; 
                             Qty: ${qty} &bull; 
-                            Bought At: ${formatCcy(buyPrice, asset.currency)} ${fees > 0 ? `(+${formatCcy(fees, asset.currency)} fees)` : ''}
+                            Bought At: ${formatCcy(buyPrice, asset.currency)} ${fees > 0 ? `(+${formatCcy(fees, asset.currency)} fees)` : ''}${pDateHtml}
                         </p>
                     </div>
                 </div>
                 <div style="display:flex; flex-direction:column; align-items:flex-end; gap:0.25rem;">
                     <div style="font-size:1.2rem; font-weight:700;">${formatCcy(totalCurrentValueEgpOrUsd, asset.currency)}</div>
                     ${plHtml}
-                    <div style="margin-top:0.35rem;">
+                    <div style="margin-top:0.35rem; display:flex; gap:0.5rem; justify-content:flex-end;">
+                        <button class="action-btn edit-btn" onclick="promptAddAsset(${asset.id})" style="padding:0.25rem 0.6rem; font-size:0.8rem; background:rgba(255,255,255,0.05); border-color:var(--border);">
+                            <i class="ph ph-pencil-simple"></i> Edit
+                        </button>
                         <button class="action-btn delete-btn" onclick="deleteWealthAsset(${asset.id})" style="padding:0.25rem 0.6rem; font-size:0.8rem; background:rgba(248,113,113,0.1); color:var(--money-out); border-color:rgba(248,113,113,0.3);">
                             <i class="ph ph-trash"></i> Drop
                         </button>
@@ -2789,13 +2798,14 @@ async function logAndRenderWealthHistory(currentTotal) {
     }
 }
 
-window.promptAddAsset = () => {
+window.promptAddAsset = (editId = null) => {
     const overlay = document.createElement('div');
     overlay.className = 'modal-overlay';
     overlay.style.cssText = "z-index:99999;"; 
     overlay.id = 'assetModalOverlay';
     
     let modalData = { category: null };
+    let existingAsset = editId ? globalWealthAssets.find(a => a.id === editId) : null;
     
     const renderStep1 = () => {
         return `
@@ -2898,19 +2908,25 @@ window.promptAddAsset = () => {
                 </div>
             </div>
             
-            <div style="margin-bottom:1.5rem;">
-                <label>Transaction / Input Currency</label>
-                <select id="waValuationCurrency" class="glass-select" style="width:100%;">
-                    <option value="USD">USD</option>
-                    <option value="EGP">EGP</option>
-                    <option value="EUR">EUR</option>
-                    <option value="GBP">GBP</option>
-                </select>
+            <div style="display:flex; gap:1rem; margin-bottom:1.5rem;">
+                <div style="flex:1;">
+                    <label>Transaction / Input Currency</label>
+                    <select id="waValuationCurrency" class="glass-select" style="width:100%;">
+                        <option value="USD">USD</option>
+                        <option value="EGP">EGP</option>
+                        <option value="EUR">EUR</option>
+                        <option value="GBP">GBP</option>
+                    </select>
+                </div>
+                <div style="flex:1;">
+                    <label>Purchase Date (Optional)</label>
+                    <input type="date" id="waPurchaseDate" class="glass-input">
+                </div>
             </div>
             
             <div class="modal-actions">
                 <button class="modal-btn cancel" onclick="document.getElementById('assetModalOverlay').remove()">Cancel</button>
-                <button class="modal-btn confirm" id="saveAssetBtn" onclick="window._submitAsset('${cat}')">Add Option</button>
+                <button class="modal-btn confirm" id="saveAssetBtn" onclick="window._submitAsset('${cat}')">${editId ? 'Save Changes' : 'Add Option'}</button>
             </div>
         `;
     };
@@ -2921,18 +2937,53 @@ window.promptAddAsset = () => {
     window._setAssetCat = (cat) => {
         modalData.category = cat;
         box.innerHTML = renderStep2(cat);
+        
+        if (existingAsset) {
+            if (document.getElementById('waValuationCurrency')) document.getElementById('waValuationCurrency').value = existingAsset.currency || 'USD';
+            if (document.getElementById('waBuyPrice')) document.getElementById('waBuyPrice').value = existingAsset.purchase_price || '';
+            if (document.getElementById('waFees')) document.getElementById('waFees').value = existingAsset.fees || '';
+            
+            if (existingAsset.purchase_date) {
+                // The DB sends full timestamp, slice to 'YYYY-MM-DD'
+                const pDateStr = new Date(existingAsset.purchase_date).toISOString().split('T')[0];
+                if (document.getElementById('waPurchaseDate')) document.getElementById('waPurchaseDate').value = pDateStr;
+            }
+            
+            if (document.getElementById('waDynQty')) document.getElementById('waDynQty').value = existingAsset.quantity || '';
+            
+            if (cat === 'Precious Metals' && document.getElementById('waCommoditySpec')) {
+                document.getElementById('waCommoditySpec').value = existingAsset.commodity_type || 'Gold-24k';
+            } else if (cat === 'Fiat Currency' && document.getElementById('waCurrencyCode')) {
+                document.getElementById('waCurrencyCode').value = existingAsset.asset_name.replace(' Holdings', '') || '';
+            } else {
+                if (document.getElementById('waCustomName')) document.getElementById('waCustomName').value = existingAsset.asset_name || '';
+                if (document.getElementById('waCurrentValue')) document.getElementById('waCurrentValue').value = existingAsset.current_manual_value || '';
+            }
+        }
     };
     window._renderAssetStep1 = () => {
-        box.innerHTML = renderStep1();
+        if (existingAsset) {
+            // direct route if editing
+            let catMatch = 'Other';
+            if (existingAsset.asset_type === 'Commodity') catMatch = 'Precious Metals';
+            if (existingAsset.asset_type === 'Currency') catMatch = 'Fiat Currency';
+            if (existingAsset.asset_name.toLowerCase().includes('btc') || existingAsset.asset_name.toLowerCase().includes('crypto') || existingAsset.asset_type === 'Crypto') catMatch = 'Crypto';
+            if (existingAsset.asset_name.toLowerCase().includes('real estate') || existingAsset.asset_name.toLowerCase().includes('property') || existingAsset.asset_type === 'Real Estate') catMatch = 'Real Estate';
+            window._setAssetCat(catMatch);
+        } else {
+            box.innerHTML = renderStep1();
+        }
     };
     
     window._submitAsset = async (cat) => {
         const payload = {
+            id: editId || undefined,
             asset_type: cat === 'Precious Metals' ? 'Commodity' : (cat === 'Fiat Currency' ? 'Currency' : cat),
             commodity_type: 'None',
             currency: document.getElementById('waValuationCurrency').value,
             purchase_price: document.getElementById('waBuyPrice').value || 0,
             fees: document.getElementById('waFees').value || 0,
+            purchase_date: document.getElementById('waPurchaseDate').value || null,
             quantity: document.getElementById('waDynQty') ? document.getElementById('waDynQty').value : 0,
             is_automated: false,
             current_manual_value: 0
@@ -2967,25 +3018,32 @@ window.promptAddAsset = () => {
         payload.asset_name = assetName;
         
         const auth = sessionStorage.getItem('spendAuth');
-        document.getElementById('saveAssetBtn').innerHTML = '<i class="ph ph-spinner ph-spin"></i> Saving...';
-        
         try {
-            const res = await fetch('/api/wealth', {
-                method: 'POST',
+            document.getElementById('saveAssetBtn').innerHTML = '<span class="loader"></span> Saving...';
+            document.getElementById('saveAssetBtn').disabled = true;
+            
+            const reqUrl = '/api/wealth';
+            const reqMethod = 'POST';
+
+            const res = await fetch(reqUrl, {
+                method: reqMethod,
                 headers: { 'Content-Type': 'application/json', 'x-admin-pin': auth },
                 body: JSON.stringify(payload)
             });
             const data = await res.json();
+            
             if(data.success) {
-                showToast('Asset added to ledger successfully!', 'success');
                 document.getElementById('assetModalOverlay').remove();
-                fetchWealthData();
+                fetchWealthData(); // triggers re-paint natively
             } else {
-                throw new Error(data.error || 'Server rejected insertion');
+                alert('Engine failure: ' + (data.error || 'Unknown parameter exception'));
+                document.getElementById('saveAssetBtn').innerHTML = 'Add Option';
+                document.getElementById('saveAssetBtn').disabled = false;
             }
         } catch(e) {
-            showToast(e.message, 'error');
+            console.error("Save Asset Pipeline Error:", e);
             document.getElementById('saveAssetBtn').innerHTML = 'Add Option';
+            document.getElementById('saveAssetBtn').disabled = false;
         }
     };
     

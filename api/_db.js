@@ -86,12 +86,19 @@ export const initSchema = () => {
             commodity_type VARCHAR(50),
             quantity DECIMAL(15,4),
             purchase_price DECIMAL(15,2),
+            purchase_date DATE,
             fees DECIMAL(15,2) DEFAULT 0,
             currency VARCHAR(10) DEFAULT 'USD',
             is_automated BOOLEAN DEFAULT false,
             current_manual_value DECIMAL(15,2),
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )`);
+
+        try {
+            await pool.query(`ALTER TABLE wealth_assets ADD COLUMN IF NOT EXISTS purchase_date DATE`);
+        } catch (e) {
+            console.warn("Migration for purchase_date skipped or failed:", e.message);
+        }
 
         await pool.query(`CREATE TABLE IF NOT EXISTS wealth_history (
             id SERIAL PRIMARY KEY,
