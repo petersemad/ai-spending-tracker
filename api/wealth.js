@@ -36,10 +36,10 @@ export default async function handler(request, response) {
                 if (regpRes.ok) {
                     const html = await regpRes.text();
                     
-                    const m24 = html.match(/<div>ذهب عيار 24<\/div>[\s\S]{1,150}?<span class="fixed-num">([\d,]+)<\/span>/i);
-                    const m21 = html.match(/<div>ذهب عيار 21<\/div>[\s\S]{1,150}?<span class="fixed-num">([\d,]+)<\/span>/i);
-                    const m18 = html.match(/<div>ذهب عيار 18<\/div>[\s\S]{1,150}?<span class="fixed-num">([\d,]+)<\/span>/i);
-                    const mpound = html.match(/<div>جنيه الذهب<\/div>[\s\S]{1,150}?<span class="fixed-num">([\d,]+)<\/span>/i);
+                    const m24 = html.match(/<div>ذهب عيار 24<\/div>[\s\S]{1,500}?<span class="fixed-num">([\d,]+)<\/span>/i);
+                    const m21 = html.match(/<div>ذهب عيار 21<\/div>[\s\S]{1,500}?<span class="fixed-num">([\d,]+)<\/span>/i);
+                    const m18 = html.match(/<div>ذهب عيار 18<\/div>[\s\S]{1,500}?<span class="fixed-num">([\d,]+)<\/span>/i);
+                    const mpound = html.match(/<div>جنيه الذهب<\/div>[\s\S]{1,500}?<span class="fixed-num">([\d,]+)<\/span>/i);
                     
                     if (m24) realEgpGold.k24 = parseFloat(m24[1].replace(/,/g, ''));
                     if (m21) realEgpGold.k21 = parseFloat(m21[1].replace(/,/g, ''));

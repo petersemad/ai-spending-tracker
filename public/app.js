@@ -2744,7 +2744,8 @@ async function logAndRenderWealthHistory(currentTotal) {
         const res = await fetch('/api/wealth?history=true', { headers: { 'x-admin-pin': auth } });
         const data = await res.json();
         
-        if (data.success && data.history) {
+        if (data.success && data.history && data.history.length > 0) {
+            document.getElementById('wealthChartBox').style.display = 'block';
             const ctx = document.getElementById('wealthChart').getContext('2d');
             if (wealthChartInstance) wealthChartInstance.destroy();
             
